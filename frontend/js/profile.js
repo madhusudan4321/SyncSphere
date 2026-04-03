@@ -40,7 +40,7 @@ async function loadProfile(username, isOwn) {
             ${posts.length === 0 ? '<div class="empty-posts">No posts yet.</div>' : ''}
             ${posts.map(p => `
               <div class="profile-grid-item">
-                ${p.image ? `<img src="http://localhost:5000${p.image}" alt="">` : `<div class="emoji-post">${p.emoji || '📷'}</div>`}
+                ${p.image ? `<img src="https://syncsphere-api.onrender.com${p.image}" alt="">` : `<div class="emoji-post">${p.emoji || '📷'}</div>`}
               </div>
             `).join('')}
           </div>

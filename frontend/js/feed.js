@@ -31,7 +31,7 @@ function buildPostCard(p) {
   const liked = p.likes.includes(window.APP.user._id);
   const card = document.createElement('div');
   card.className = 'post-card';
-  const imgSrc = p.image ? `http://localhost:5000${p.image}` : null;
+  const imgSrc = p.image ? `https://syncsphere-api.onrender.com${p.image}` : null;
   card.innerHTML = `
     <div class="post-header">
       <div class="post-avatar" onclick="viewProfile('${p.user.username}')"><div class="av-inner">${getInitials(p.user.name || p.user.username)}</div></div>

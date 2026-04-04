@@ -11,6 +11,7 @@ async function authLogin() {
       document.getElementById('chat-title').textContent = data.user.username;
       switchScreen('app');
       switchTab('home');
+      autoRefreshOnLogin();
     } catch (err) {
       errEl.textContent = err.message;
     }
@@ -49,5 +50,6 @@ async function authLogin() {
       document.getElementById('chat-title').textContent = window.APP.user.username;
       switchScreen('app');
       switchTab('home');
+      setTimeout(() => autoRefreshOnLogin(), 500);
     }
   })();

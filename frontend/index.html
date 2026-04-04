@@ -90,7 +90,13 @@
             </div>
           </div>
         </div>
-        <div id="tab-profile" class="tab-panel"><div id="profile-view"></div></div>
+        <div id="tab-profile" class="tab-panel">
+          <div id="follow-requests-bar" style="display:none;background:#fff8f0;border-bottom:1px solid #f09433;padding:12px 16px;cursor:pointer" onclick="showFollowRequests()">
+            <p style="font-size:13px;font-weight:600">📬 You have <span id="follow-req-count">0</span> follow request(s)</p>
+          </div>
+          <div id="follow-requests-list" style="display:none"></div>
+          <div id="profile-view"></div>
+        </div>
       </div>
 
       <div class="bottom-nav">

@@ -51,17 +51,82 @@ router.post('/:id/follow', protect, async (req, res) => {
     const target = await User.findById(req.params.id);
     const me = await User.findById(req.user.id);
     if (!target || !me) return res.status(404).json({ message: 'User not found' });
+
     const isFollowing = me.following.includes(target._id);
+    const hasPendingRequest = target.followRequests.includes(me._id);
+
     if (isFollowing) {
+      // Unfollow
       me.following.pull(target._id);
       target.followers.pull(me._id);
-    } else {
-      me.following.push(target._id);
-      target.followers.push(me._id);
+      await me.save();
+      await target.save();
+      return res.json({ status: 'unfollowed', followersCount: target.followers.length });
     }
+
+    if (hasPendingRequest) {
+      // Cancel follow request
+      target.followRequests.pull(me._id);
+      await target.save();
+      return res.json({ status: 'request_cancelled', followersCount: target.followers.length });
+    }
+
+    if (target.isPrivate) {
+      // Send follow request
+      target.followRequests.push(me._id);
+      await target.save();
+      return res.json({ status: 'request_sent', followersCount: target.followers.length });
+    }
+
+    // Public account — follow directly
+    me.following.push(target._id);
+    target.followers.push(me._id);
     await me.save();
     await target.save();
-    res.json({ following: !isFollowing, followersCount: target.followers.length });
+    res.json({ status: 'following', followersCount: target.followers.length });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// GET /api/users/follow-requests — get my pending follow requests
+router.get('/follow-requests/list', protect, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.id).populate('followRequests', '_id username name avatar');
+    res.json(me.followRequests);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// PUT /api/users/follow-requests/:id/accept
+router.put('/follow-requests/:id/accept', protect, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.id);
+    const requester = await User.findById(req.params.id);
+    if (!requester) return res.status(404).json({ message: 'User not found' });
+    me.followRequests.pull(requester._id);
+    me.followers.push(requester._id);
+    requester.following.push(me._id);
+    await me.save();
+    await requester.save();
+    res.json({ message: 'Follow request accepted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// PUT /api/users/follow-requests/:id/decline
+router.put('/follow-requests/:id/decline', protect, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.id);
+    me.followRequests.pull(req.params.id);
+    await me.save();
+    res.json({ message: 'Follow request declined' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// PUT /api/users/privacy — toggle private/public
+router.put('/privacy/toggle', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    user.isPrivate = !user.isPrivate;
+    await user.save();
+    res.json({ isPrivate: user.isPrivate });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

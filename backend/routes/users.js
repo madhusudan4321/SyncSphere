@@ -19,16 +19,21 @@ router.get('/search', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// GET /api/users/:username
-router.get('/:username', protect, async (req, res) => {
+// GET /api/users/follow-requests — get my pending follow requests
+router.get('/follow-requests/list', protect, async (req, res) => {
   try {
-    const user = await User.findOne({ username: req.params.username })
-      .select('-password')
-      .populate('followers', '_id username name')
-      .populate('following', '_id username name');
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    const posts = await Post.find({ user: user._id }).sort({ createdAt: -1 });
-    res.json({ user, posts });
+    const me = await User.findById(req.user.id).populate('followRequests', '_id username name avatar');
+    res.json(me.followRequests);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// PUT /api/users/privacy — toggle private/public
+router.put('/privacy/toggle', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    user.isPrivate = !user.isPrivate;
+    await user.save();
+    res.json({ isPrivate: user.isPrivate });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
@@ -87,14 +92,6 @@ router.post('/:id/follow', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// GET /api/users/follow-requests — get my pending follow requests
-router.get('/follow-requests/list', protect, async (req, res) => {
-  try {
-    const me = await User.findById(req.user.id).populate('followRequests', '_id username name avatar');
-    res.json(me.followRequests);
-  } catch (err) { res.status(500).json({ message: err.message }); }
-});
-
 // PUT /api/users/follow-requests/:id/accept
 router.put('/follow-requests/:id/accept', protect, async (req, res) => {
   try {
@@ -120,14 +117,16 @@ router.put('/follow-requests/:id/decline', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// PUT /api/users/privacy — toggle private/public
-router.put('/privacy/toggle', protect, async (req, res) => {
+// GET /api/users/:username
+router.get('/:username', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    user.isPrivate = !user.isPrivate;
-    await user.save();
-    res.json({ isPrivate: user.isPrivate });
+    const user = await User.findOne({ username: req.params.username })
+      .select('-password')
+      .populate('followers', '_id username name')
+      .populate('following', '_id username name');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const posts = await Post.find({ user: user._id }).sort({ createdAt: -1 });
+    res.json({ user, posts });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
-
 module.exports = router;

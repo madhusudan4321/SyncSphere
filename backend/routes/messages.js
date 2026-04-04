@@ -13,7 +13,9 @@ router.get('/threads', protect, async (req, res) => {
 
     const threadMap = {};
     messages.forEach(msg => {
+      if (!msg.from || !msg.to) return;
       const other = msg.from._id.toString() === req.user.id ? msg.to : msg.from;
+      if (!other || !other._id) return;
       const key = other._id.toString();
       if (!threadMap[key]) threadMap[key] = { user: other, lastMsg: msg };
     });

@@ -13,6 +13,7 @@ async function loadThreads() {
       return;
     }
     threads.forEach(t => {
+      if (!t.user || !t.user._id) return;
       const div = document.createElement('div');
       div.className = 'chat-thread';
       div.onclick = () => openChatWindow(t.user._id, t.user.username);

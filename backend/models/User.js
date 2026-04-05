@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema({
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   followRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   isPrivate: { type: Boolean, default: false },
+  resetOTP:       { type: String },
+  resetOTPExpiry: { type: Date },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

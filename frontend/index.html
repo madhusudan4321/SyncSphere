@@ -22,9 +22,10 @@
         <div class="auth-card">
           <p class="auth-desc">Sign in to see photos from your friends.</p>
           <input type="email" id="login-email" placeholder="Email">
-          <input type="password" id="login-pass" placeholder="Password">
+          <input type="password" id="login-pass" placeholder="Password" onkeydown="if(event.key==='Enter')authLogin()">
           <p class="auth-error" id="login-err"></p>
           <button class="btn-main" onclick="authLogin()">Log In</button>
+          <p style="text-align:center;margin-top:12px;font-size:13px"><span onclick="switchScreen('forgot')" style="color:var(--accent);cursor:pointer;font-weight:600">Forgot password?</span></p>
         </div>
         <div class="auth-switch">Don't have an account? <span onclick="switchScreen('signup')">Sign up</span></div>
       </div>
@@ -32,6 +33,50 @@
   </div>
 
   <!-- SIGNUP -->
+   <!-- FORGOT PASSWORD -->
+<div id="screen-forgot" class="screen">
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-logo"><div class="auth-logo-text">SyncSphere</div></div>
+
+      <!-- Step 1: Enter Email -->
+      <div id="forgot-step1">
+        <div class="auth-card">
+          <p class="auth-desc">Reset your password</p>
+          <p style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:16px">Enter your registered email and we'll send you an OTP</p>
+          <input type="email" id="forgot-email" placeholder="Enter your email">
+          <p class="auth-error" id="forgot-err1"></p>
+          <button class="btn-main" onclick="forgotSendOTP()">Send OTP</button>
+        </div>
+        <div class="auth-switch">Remember your password? <span onclick="switchScreen('login')">Log in</span></div>
+      </div>
+
+      <!-- Step 2: Enter OTP -->
+      <div id="forgot-step2" style="display:none">
+        <div class="auth-card">
+          <p class="auth-desc">Enter OTP</p>
+          <p style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:16px">We sent a 6-digit OTP to <strong id="forgot-email-display"></strong></p>
+          <input type="text" id="forgot-otp" placeholder="Enter 6-digit OTP" maxlength="6" style="text-align:center;font-size:20px;font-weight:700;letter-spacing:8px">
+          <p class="auth-error" id="forgot-err2"></p>
+          <button class="btn-main" onclick="forgotVerifyOTP()">Verify OTP</button>
+          <p style="text-align:center;margin-top:12px;font-size:13px;color:var(--muted)">Didn't receive? <span onclick="forgotSendOTP()" style="color:var(--accent);cursor:pointer;font-weight:600">Resend OTP</span></p>
+        </div>
+      </div>
+
+      <!-- Step 3: New Password -->
+      <div id="forgot-step3" style="display:none">
+        <div class="auth-card">
+          <p class="auth-desc">Set new password</p>
+          <input type="password" id="forgot-newpass" placeholder="New Password (min 6 chars)">
+          <input type="password" id="forgot-newpass2" placeholder="Confirm New Password">
+          <p class="auth-error" id="forgot-err3"></p>
+          <button class="btn-main" onclick="forgotResetPassword()">Reset Password</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
   <div id="screen-signup" class="screen">
     <div class="auth-wrap">
       <div class="auth-box">
@@ -156,5 +201,6 @@
 <script src="js/chat.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/refresh.js"></script>
+<script src="js/forgot.js"></script>
 </body>
 </html>

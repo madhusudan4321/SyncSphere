@@ -14,7 +14,8 @@ const transporter = nodemailer.createTransport({
     },
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    family: 4
   });
 
 // POST /api/forgot/send-otp

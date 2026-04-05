@@ -1,10 +1,10 @@
 const express = require('express');
 const router  = express.Router();
 const User    = require('../models/User');
-const Brevo = require('@getbrevo/brevo');
-
-const apiInstance = new Brevo.TransactionalEmailsApi();
-apiInstance.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
+const { TransactionalEmailsApi, SendSmtpEmail, ApiClient } = require('@getbrevo/brevo');
+const defaultClient = ApiClient.instance;
+defaultClient.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
+const apiInstance = new TransactionalEmailsApi();
 
 // POST /api/forgot/send-otp
 router.post('/send-otp', async (req, res) => {
@@ -21,7 +21,7 @@ router.post('/send-otp', async (req, res) => {
     user.resetOTPExpiry = expiry;
     await user.save();
 
-    const sendSmtpEmail = new Brevo.SendSmtpEmail();
+    const sendSmtpEmail = new SendSmtpEmail();
     sendSmtpEmail.subject = 'SyncSphere — Password Reset OTP';
     sendSmtpEmail.to      = [{ email: email }];
     sendSmtpEmail.sender  = { email: process.env.EMAIL_USER, name: 'SyncSphere' };

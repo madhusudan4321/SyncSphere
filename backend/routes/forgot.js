@@ -1,22 +1,10 @@
-const express    = require('express');
-const router     = express.Router();
-const nodemailer = require('nodemailer');
-const User       = require('../models/User');
+const express = require('express');
+const router  = express.Router();
+const User    = require('../models/User');
+const Brevo = require('@getbrevo/brevo');
 
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    },
-    tls: {
-      rejectUnauthorized: false
-    },
-    family: 4
-  });
+const apiInstance = new Brevo.TransactionalEmailsApi();
+apiInstance.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
 
 // POST /api/forgot/send-otp
 router.post('/send-otp', async (req, res) => {
@@ -26,32 +14,30 @@ router.post('/send-otp', async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) return res.status(404).json({ message: 'No account found with this email' });
 
-    // Generate 6 digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otp    = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
     user.resetOTP       = otp;
     user.resetOTPExpiry = expiry;
     await user.save();
 
-    // Send email
-    await transporter.sendMail({
-      from:    `"SyncSphere" <${process.env.EMAIL_USER}>`,
-      to:      email,
-      subject: 'SyncSphere — Password Reset OTP',
-      html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#fafafa;border-radius:12px">
-          <h2 style="color:#262626;margin-bottom:8px">Reset your password</h2>
-          <p style="color:#8e8e8e;margin-bottom:24px">Use the OTP below to reset your SyncSphere password. It expires in <strong>10 minutes</strong>.</p>
-          <div style="background:#fff;border:1px solid #dbdbdb;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
-            <p style="font-size:40px;font-weight:700;letter-spacing:12px;color:#262626;margin:0">${otp}</p>
-          </div>
-          <p style="color:#8e8e8e;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
-          <p style="color:#8e8e8e;font-size:13px;margin-top:16px">— The SyncSphere Team</p>
+    const sendSmtpEmail = new Brevo.SendSmtpEmail();
+    sendSmtpEmail.subject = 'SyncSphere — Password Reset OTP';
+    sendSmtpEmail.to      = [{ email: email }];
+    sendSmtpEmail.sender  = { email: process.env.EMAIL_USER, name: 'SyncSphere' };
+    sendSmtpEmail.htmlContent = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#fafafa;border-radius:12px">
+        <h2 style="color:#262626;margin-bottom:8px">Reset your password</h2>
+        <p style="color:#8e8e8e;margin-bottom:24px">Use the OTP below to reset your SyncSphere password. It expires in <strong>10 minutes</strong>.</p>
+        <div style="background:#fff;border:1px solid #dbdbdb;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
+          <p style="font-size:40px;font-weight:700;letter-spacing:12px;color:#262626;margin:0">${otp}</p>
         </div>
-      `
-    });
+        <p style="color:#8e8e8e;font-size:13px">If you didn't request this, you can safely ignore this email.</p>
+        <p style="color:#8e8e8e;font-size:13px;margin-top:16px">— The SyncSphere Team</p>
+      </div>
+    `;
 
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
     res.json({ message: 'OTP sent successfully' });
   } catch (err) {
     console.error(err);
@@ -72,7 +58,6 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ message: 'Invalid OTP' });
     if (new Date() > user.resetOTPExpiry)
       return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
-
     res.json({ message: 'OTP verified', verified: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -93,12 +78,10 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ message: 'Invalid OTP' });
     if (new Date() > user.resetOTPExpiry)
       return res.status(400).json({ message: 'OTP expired. Request a new one.' });
-
     user.password       = newPassword;
     user.resetOTP       = undefined;
     user.resetOTPExpiry = undefined;
     await user.save();
-
     res.json({ message: 'Password reset successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -13,7 +13,7 @@ input,textarea,button{font-family:var(--font)}
 /* AUTH */
 .auth-wrap{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg);overflow-y:auto}
 .auth-box{width:100%;max-width:360px;padding:20px}
-.auth-logo-text{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:#1a7fd4;text-align:center;margin-bottom:24px}
+.auth-logo-text{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;background:linear-gradient(45deg,#405de6,#5851db,#833ab4,#c13584,#e1306c,#fd1d1d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;margin-bottom:24px}
 .auth-logo{text-align:center;margin-bottom:16px;display:flex;flex-direction:column;align-items:center}
 .auth-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:28px 32px 20px;margin-bottom:10px}
 .auth-card input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fafafa;margin-bottom:8px;outline:none;color:var(--text);transition:.2s;display:block}
@@ -27,7 +27,7 @@ input,textarea,button{font-family:var(--font)}
 /* APP */
 .app-wrap{width:100%;height:100%;display:flex;flex-direction:column}
 .top-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:10}
-.top-nav .logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#1a7fd4}
+.top-nav .logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;background:linear-gradient(45deg,#405de6,#5851db,#833ab4,#c13584,#e1306c,#fd1d1d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .nav-icons{display:flex;gap:18px;align-items:center}
 .nav-icons svg{cursor:pointer;color:var(--text);transition:.15s}
 .nav-icons svg:hover{opacity:.6}

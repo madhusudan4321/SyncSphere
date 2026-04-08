@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema({
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   followRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   isPrivate: { type: Boolean, default: false },
+  blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  reports: [{ reason: String, reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, createdAt: { type: Date, default: Date.now } }],
   resetOTP:       { type: String },
   resetOTPExpiry: { type: Date },
 }, { timestamps: true });

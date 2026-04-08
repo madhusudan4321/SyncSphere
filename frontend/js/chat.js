@@ -364,3 +364,56 @@ async function submitReport(userId, username, reason) {
     showToast('Report submitted!');
   }
 }
+
+async function chatMenuBlockUser(userId, username) {
+  document.getElementById('chat-user-menu')?.remove();
+  const confirm = window.confirm(`Block @${username}? They won't be able to message or follow you.`);
+  if (!confirm) return;
+  try {
+    await api.post(`/users/${userId}/block`);
+    showToast(`@${username} has been blocked`);
+    closeChatWindow();
+  } catch (err) { showToast(err.message); }
+}
+
+function chatMenuReportUser(userId, username) {
+  document.getElementById('chat-user-menu')?.remove();
+  showReportModal(userId, username);
+}
+
+function showReportModal(userId, username) {
+  const existing = document.getElementById('report-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'report-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px;width:100%;max-width:380px;overflow:hidden">
+      <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <h3 style="font-size:16px;font-weight:700">Report @${username}</h3>
+        <button onclick="document.getElementById('report-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);line-height:1">×</button>
+      </div>
+      <div style="padding:16px">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Why are you reporting this account?</p>
+        ${['Spam or fake account','Inappropriate content','Harassment or bullying','Hate speech','Scam or fraud','Other'].map(reason => `
+          <div onclick="submitReport('${userId}','${username}','${reason}')" style="padding:12px 16px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;font-size:14px;transition:.1s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+            ${reason}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+async function submitReport(userId, username, reason) {
+  document.getElementById('report-modal')?.remove();
+  try {
+    await api.post(`/users/${userId}/report`, { reason });
+    showToast('Report submitted. Thank you for keeping SyncSphere safe.');
+  } catch (err) {
+    showToast('Report submitted!');
+  }
+}

@@ -117,6 +117,57 @@ router.put('/follow-requests/:id/decline', protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// GET /api/users/blocked/list
+router.get('/blocked/list', protect, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.id)
+      .populate('blockedUsers', '_id username name avatar');
+    res.json(me.blockedUsers);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// POST /api/users/:id/block
+router.post('/:id/block', protect, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.id);
+    if (!me.blockedUsers.includes(req.params.id)) {
+      me.blockedUsers.push(req.params.id);
+      me.following.pull(req.params.id);
+      const target = await User.findById(req.params.id);
+      if (target) {
+        target.followers.pull(me._id);
+        target.following.pull(me._id);
+        me.followers.pull(target._id);
+        await target.save();
+      }
+      await me.save();
+    }
+    res.json({ message: 'User blocked' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// POST /api/users/:id/unblock
+router.post('/:id/unblock', protect, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.id);
+    me.blockedUsers.pull(req.params.id);
+    await me.save();
+    res.json({ message: 'User unblocked' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// POST /api/users/:id/report
+router.post('/:id/report', protect, async (req, res) => {
+  const { reason } = req.body;
+  try {
+    const target = await User.findById(req.params.id);
+    if (!target) return res.status(404).json({ message: 'User not found' });
+    target.reports.push({ reason, reportedBy: req.user.id });
+    await target.save();
+    res.json({ message: 'Report submitted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 // GET /api/users/:username
 router.get('/:username', protect, async (req, res) => {
   try {

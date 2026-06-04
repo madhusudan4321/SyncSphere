@@ -3,8 +3,7 @@
 A full-stack social media application inspired by Instagram, built with vanilla HTML/CSS/JavaScript on the frontend and Node.js/Express/MongoDB on the backend.
 
 ## 🌍 Live Demo
-- **Frontend:** https://syncsphere-frontend.onrender.com
-- **Backend API:** https://syncsphere-api.onrender.com
+[![Live Demo](https://img.shields.io/badge/Live-Demo-blue)](https://syncsphere-frontend.onrender.com/)
 
 ---
 

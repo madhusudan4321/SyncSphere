@@ -1,10 +1,10 @@
 async function authLogin() {
-    const email    = document.getElementById('login-email').value.trim();
+    const identifier = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-pass').value;
     const errEl    = document.getElementById('login-err');
     errEl.textContent = '';
     try {
-      const data = await api.post('/auth/login', { email, password });
+      const data = await api.post('/auth/login', { identifier, password });
       localStorage.setItem('pic_token', data.token);
       localStorage.setItem('pic_user',  JSON.stringify(data.user));
       window.APP.user = data.user;

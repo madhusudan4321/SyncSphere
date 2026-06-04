@@ -25,12 +25,29 @@ router.post('/register', async (req, res) => {
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { identifier, password } = req.body;
+  if (!identifier || !password)
+    return res.status(400).json({ message: 'All fields required' });
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({
+      $or: [
+        { email: identifier.toLowerCase() },
+        { username: identifier.toLowerCase() }
+      ]
+    });
     if (!user || !(await user.matchPassword(password)))
-      return res.status(401).json({ message: 'Invalid email or password' });
-    res.json({ token: generateToken(user._id, user.username), user: { _id: user._id, username: user.username, name: user.name, bio: user.bio, website: user.website, avatar: user.avatar } });
+      return res.status(401).json({ message: 'Invalid credentials' });
+    res.json({
+      token: generateToken(user._id, user.username),
+      user: {
+        _id: user._id,
+        username: user.username,
+        name: user.name,
+        bio: user.bio,
+        website: user.website,
+        avatar: user.avatar
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

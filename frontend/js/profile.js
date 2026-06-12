@@ -32,8 +32,8 @@ async function loadProfile(username, isOwn) {
               <div class="profile-pic"><div class="pp-inner">${getInitials(user.name || user.username)}</div></div>
               <div class="profile-stats">
                 <div class="stat-item"><div class="s-num">${posts.length}</div><div class="s-label">Posts</div></div>
-                <div class="stat-item"><div class="s-num">${user.followers.length}</div><div class="s-label">Followers</div></div>
-                <div class="stat-item"><div class="s-num">${user.following.length}</div><div class="s-label">Following</div></div>
+                <div class="stat-item" onclick="openFollowModal('followers','${safeUsername}')" style="cursor:pointer"><div class="s-num">${user.followers.length}</div><div class="s-label">Followers</div></div>
+                <div class="stat-item" onclick="openFollowModal('following','${safeUsername}')" style="cursor:pointer"><div class="s-num">${user.following.length}</div><div class="s-label">Following</div></div>
               </div>
             </div>
             <div>
@@ -74,7 +74,7 @@ async function loadProfile(username, isOwn) {
             ` : ''}
             ${(isOwn || !user.isPrivate || isFollowing) && posts.length === 0 ? '<div class="empty-posts">No posts yet.</div>' : ''}
             ${(isOwn || !user.isPrivate || isFollowing) ? posts.map(p => `
-              <div class="profile-grid-item">
+              <div class="profile-grid-item" onclick="openPostLightbox('${p._id}')">
               ${p.image ? `<img src="${getImageUrl(p.image)}" alt="">` : `<div class="emoji-post">${p.emoji || '📷'}</div>`}
               </div>
             `).join('') : ''}
@@ -366,4 +366,160 @@ function closeProfileMenuAnd(fn) {
   const menu = document.getElementById('profile-menu');
   if (menu) menu.remove();
   setTimeout(() => fn(), 150);
+}
+// ── Followers / Following modal ───────────────────────────────
+async function openFollowModal(type, username) {
+  document.getElementById('follow-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'follow-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;display:flex;align-items:flex-end;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--surface);width:100%;max-width:480px;border-radius:20px 20px 0 0;max-height:75vh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div style="width:40px;height:4px;background:var(--border);border-radius:4px"></div>
+        <h3 style="font-size:16px;font-weight:700">${type === 'followers' ? 'Followers' : 'Following'}</h3>
+        <button onclick="document.getElementById('follow-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text)">×</button>
+      </div>
+      <div id="follow-list" style="overflow-y:auto;flex:1"><div class="loader"><div class="spinner"></div></div></div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+
+  try {
+    const data  = await api.get(`/users/${username}/profile`);
+    const users = type === 'followers' ? data.user.followers : data.user.following;
+    const list  = document.getElementById('follow-list');
+    if (!users || users.length === 0) {
+      list.innerHTML = `<p style="text-align:center;color:var(--muted);padding:40px;font-size:14px">No ${type} yet.</p>`;
+      return;
+    }
+    list.innerHTML = users.map(u => {
+      const su = sanitize(u.username||''), sn = sanitize(u.name||'');
+      return `<div onclick="document.getElementById('follow-modal').remove();viewProfile('${su}')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+        <div class="u-av"><div class="u-av-inner">${getInitials(sn||su)}</div></div>
+        <div class="u-info"><p style="font-size:14px;font-weight:600">${su}</p><p style="font-size:12px;color:var(--muted)">${sn}</p></div>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    const list = document.getElementById('follow-list');
+    if (list) list.innerHTML = `<p style="text-align:center;color:#ed4956;padding:20px">${sanitize(err.message)}</p>`;
+  }
+}
+
+// ── Post lightbox ─────────────────────────────────────────────
+async function openPostLightbox(postId) {
+  document.getElementById('post-lightbox')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'post-lightbox';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;flex-direction:column;overflow:hidden';
+  modal.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;flex-shrink:0">
+      <button onclick="document.getElementById('post-lightbox').remove()" style="background:rgba(255,255,255,.15);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:20px">×</button>
+      <p style="color:#fff;font-size:14px;font-weight:600">Post</p>
+      <div style="width:36px"></div>
+    </div>
+    <div id="lightbox-content" style="flex:1;overflow-y:auto;background:var(--surface)">
+      <div class="loader"><div class="spinner"></div></div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+  await loadLightboxContent(postId);
+}
+
+async function loadLightboxContent(postId) {
+  const content = document.getElementById('lightbox-content'); if (!content) return;
+  try {
+    const [p, comments] = await Promise.all([
+      api.get(`/posts/${postId}`),
+      api.get(`/posts/${postId}/comments`)
+    ]);
+    const imgSrc = getImageUrl(p.image);
+    const liked  = p.likes.includes(window.APP.user._id);
+    const safeU  = sanitize(p.user.username);
+    const safeC  = sanitize(p.caption);
+
+    content.innerHTML = `
+      ${imgSrc
+        ? `<img src="${imgSrc}" alt="" style="width:100%;max-height:55vh;object-fit:contain;background:#000;display:block">`
+        : `<div style="width:100%;aspect-ratio:1;background:#111;display:flex;align-items:center;justify-content:center;font-size:80px">${p.emoji||'📷'}</div>`}
+      <div style="padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)">
+        <div class="post-avatar" style="cursor:pointer" onclick="document.getElementById('post-lightbox').remove();viewProfile('${safeU}')"><div class="av-inner">${getInitials(p.user.name||p.user.username)}</div></div>
+        <strong style="font-size:14px;cursor:pointer" onclick="document.getElementById('post-lightbox').remove();viewProfile('${safeU}')">${safeU}</strong>
+        <span style="margin-left:auto;font-size:12px;color:var(--muted)">${timeAgo(p.createdAt)}</span>
+      </div>
+      <div style="padding:10px 16px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--border)">
+        <span id="lb-like-btn" class="${liked?'liked':''}" onclick="lightboxToggleLike('${p._id}')" style="cursor:pointer;display:flex;align-items:center;gap:6px">
+          <svg width="24" height="24" fill="${liked?'#ed4956':'none'}" stroke="${liked?'#ed4956':'currentColor'}" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          <span id="lb-likes-count" style="font-size:13px;font-weight:600">${p.likes.length} like${p.likes.length!==1?'s':''}</span>
+        </span>
+      </div>
+      ${safeC ? `<div style="padding:10px 16px;font-size:14px;border-bottom:1px solid var(--border)"><strong>${safeU}</strong> ${safeC}</div>` : ''}
+      <div id="lb-comments" style="min-height:60px">
+        ${comments.length === 0
+          ? '<p style="text-align:center;color:var(--muted);padding:20px;font-size:13px">No comments yet.</p>'
+          : comments.map(c => {
+              const cu = sanitize(c.user.username), ct = sanitize(c.text);
+              const own = c.user._id === window.APP.user._id;
+              return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)">
+                <div class="post-avatar" style="cursor:pointer;width:28px;height:28px" onclick="document.getElementById('post-lightbox').remove();viewProfile('${cu}')"><div class="av-inner" style="font-size:9px">${getInitials(c.user.name||c.user.username)}</div></div>
+                <div style="flex:1"><span style="font-weight:700;font-size:13px">${cu}</span> <span style="font-size:13px">${ct}</span><div style="font-size:11px;color:var(--muted);margin-top:2px">${timeAgo(c.createdAt)}</div></div>
+                ${own ? `<button onclick="lightboxDeleteComment('${postId}','${c._id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1">×</button>` : ''}
+              </div>`;
+            }).join('')}
+      </div>
+      <div style="padding:10px 12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface);position:sticky;bottom:0">
+        <input id="lb-comment-input" type="text" placeholder="Add a comment..." maxlength="500"
+          style="flex:1;border:1px solid var(--border);border-radius:22px;padding:9px 16px;font-size:14px;outline:none;background:var(--surface2);color:var(--text)"
+          onkeydown="if(event.key==='Enter')lightboxSubmitComment('${postId}')">
+        <button onclick="lightboxSubmitComment('${postId}')" style="background:var(--accent);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+          <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
+        </button>
+      </div>`;
+  } catch (err) {
+    content.innerHTML = `<p style="text-align:center;color:#ed4956;padding:30px">${sanitize(err.message)}</p>`;
+  }
+}
+
+async function lightboxToggleLike(postId) {
+  try {
+    const { liked, likesCount } = await api.post(`/posts/${postId}/like`);
+    const btn = document.getElementById('lb-like-btn');
+    const svg = btn?.querySelector('svg');
+    if (svg) { svg.setAttribute('fill', liked?'#ed4956':'none'); svg.setAttribute('stroke', liked?'#ed4956':'currentColor'); }
+    if (btn) btn.className = liked ? 'liked' : '';
+    const lc = document.getElementById('lb-likes-count');
+    if (lc) lc.textContent = `${likesCount} like${likesCount!==1?'s':''}`;
+    const fl = document.getElementById('likes-'+postId);
+    if (fl) fl.textContent = `${likesCount} like${likesCount!==1?'s':''}`;
+  } catch (err) { showToast(err.message); }
+}
+
+async function lightboxSubmitComment(postId) {
+  const input = document.getElementById('lb-comment-input'); if (!input) return;
+  const text  = input.value.trim(); if (!text) return;
+  input.value = ''; input.disabled = true;
+  try {
+    const c    = await api.post(`/posts/${postId}/comments`, { text });
+    const list = document.getElementById('lb-comments');
+    if (list) {
+      const ph = list.querySelector('p'); if (ph) ph.remove();
+      const cu = sanitize(c.user.username), ct = sanitize(c.text);
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)';
+      div.innerHTML = `<div class="post-avatar" style="width:28px;height:28px"><div class="av-inner" style="font-size:9px">${getInitials(c.user.name||c.user.username)}</div></div>
+        <div style="flex:1"><span style="font-weight:700;font-size:13px">${cu}</span> <span style="font-size:13px">${ct}</span><div style="font-size:11px;color:var(--muted);margin-top:2px">just now</div></div>
+        <button onclick="lightboxDeleteComment('${postId}','${c._id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1">×</button>`;
+      list.appendChild(div);
+    }
+    const cc = document.getElementById('cc-'+postId);
+    if (cc) cc.textContent = (parseInt(cc.textContent)||0)+1;
+  } catch (err) { showToast(err.message); input.value = text; }
+  finally { input.disabled = false; input.focus(); }
+}
+
+async function lightboxDeleteComment(postId, commentId) {
+  try {
+    await api.del(`/posts/${postId}/comments/${commentId}`);
+    loadLightboxContent(postId);
+  } catch (err) { showToast(err.message); }
 }

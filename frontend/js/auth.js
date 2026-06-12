@@ -12,6 +12,7 @@ async function authLogin() {
       switchScreen('app');
       switchTab('home');
       autoRefreshOnLogin();
+      connectSocket();
     } catch (err) {
       errEl.textContent = err.message;
     }
@@ -51,6 +52,7 @@ async function authLogin() {
       switchScreen('app');
       switchTab('home');
       setTimeout(() => autoRefreshOnLogin(), 500);
+      setTimeout(() => connectSocket(), 300);
     }
   })();
   function togglePassword(inputId, btn) {

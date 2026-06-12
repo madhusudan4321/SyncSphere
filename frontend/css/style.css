@@ -26,11 +26,8 @@ input,textarea,button{font-family:var(--font)}
 .auth-error{color:#ed4956;font-size:12px;text-align:center;margin-top:6px;min-height:16px}
 /* APP */
 .app-wrap{width:100%;height:100%;display:flex;flex-direction:column}
-.top-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:10}
+.top-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;height:54px;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:10}
 .top-nav .logo{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;background:linear-gradient(45deg,#405de6,#5851db,#833ab4,#c13584,#e1306c,#fd1d1d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.nav-icons{display:flex;gap:18px;align-items:center}
-.nav-icons svg{cursor:pointer;color:var(--text);transition:.15s}
-.nav-icons svg:hover{opacity:.6}
 .content-area{flex:1;overflow:hidden;position:relative}
 .tab-panel{display:none;width:100%;height:100%;overflow-y:auto}
 .tab-panel.active{display:block}
@@ -40,6 +37,10 @@ input,textarea,button{font-family:var(--font)}
 .nav-item{flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
 .nav-item svg{color:var(--text)}
 .nav-item.active::after{content:'';position:absolute;top:6px;width:4px;height:4px;border-radius:50%;background:var(--text)}
+.nav-add-post{flex:1.2}
+.add-post-btn{width:44px;height:44px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.18);transition:transform .15s,box-shadow .15s}
+.add-post-btn svg{color:#fff;stroke:#fff}
+.nav-add-post:active .add-post-btn{transform:scale(.92);box-shadow:0 1px 6px rgba(0,0,0,.12)}
 /* FEED */
 .feed-container{max-width:480px;margin:0 auto;padding-bottom:16px}
 .stories-row{display:flex;gap:14px;padding:14px 16px 10px;overflow-x:auto;border-bottom:1px solid var(--border)}

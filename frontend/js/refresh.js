@@ -110,10 +110,4 @@ function autoRefreshOnLogin() {
     }
   });
   
-  // ─── AUTO REFRESH EVERY 60 SECONDS ───────────────────────
-  setInterval(() => {
-    const active = document.querySelector('.tab-panel.active');
-    if (!active) return;
-    const refresh = getCurrentTabRefresh();
-    if (refresh) refresh();
-  }, 60000);
+  

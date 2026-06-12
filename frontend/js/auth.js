@@ -51,17 +51,19 @@ async function authLogin() {
       document.getElementById('chat-title').textContent = window.APP.user.username;
       switchScreen('app');
 
-      // Restore profile view if user refreshed while viewing someone's profile
+      // If user refreshed while viewing someone else's profile, flag it in sessionStorage
+      // The actual restore happens at the bottom of profile.js once loadProfile() is defined
       const hash = window.location.hash; // e.g. "#@ruhii"
       if (hash && hash.startsWith('#@')) {
-        const profileUsername = hash.slice(2); // strip "#@"
-        // Switch to profile tab without auto-loading own profile
+        const profileUsername = hash.slice(2);
+        sessionStorage.setItem('restoreProfile', profileUsername);
+        // Switch tab panels manually (don't call switchTab which loads own profile)
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById('tab-profile').classList.add('active');
         document.getElementById('nav-profile').classList.add('active');
-        setTimeout(() => loadProfile(profileUsername, profileUsername === window.APP.user.username), 100);
       } else {
+        sessionStorage.removeItem('restoreProfile');
         switchTab('home');
       }
 

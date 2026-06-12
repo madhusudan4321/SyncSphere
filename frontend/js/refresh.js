@@ -19,7 +19,12 @@ function autoRefreshOnLogin() {
     if (id === 'tab-home')    return () => loadFeed();
     if (id === 'tab-search')  return () => resetSearch();
     if (id === 'tab-chat')    return () => loadThreads();
-    if (id === 'tab-profile') return () => loadProfile(window.APP.user.username, true);
+    if (id === 'tab-profile') {
+      // Refresh whichever profile is currently open, not just own
+      const { username, isOwn } = window._currentViewedProfile || {};
+      const u = username || (window.APP && window.APP.user && window.APP.user.username);
+      return u ? () => loadProfile(u, isOwn !== false && u === window.APP.user.username) : null;
+    }
     return null;
   }
   

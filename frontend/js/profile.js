@@ -1,4 +1,9 @@
+// Tracks which profile is currently being viewed (used by refresh.js pull-to-refresh)
+window._currentViewedProfile = { username: null, isOwn: true };
+
 async function loadProfile(username, isOwn) {
+  // Track current profile so pull-to-refresh refreshes the right one
+  window._currentViewedProfile = { username, isOwn };
   if (isOwn) {
     checkFollowRequests();
     // Clear hash when viewing own profile
@@ -534,3 +539,14 @@ async function lightboxDeleteComment(postId, commentId) {
     loadLightboxContent(postId);
   } catch (err) { showToast(err.message); }
 }
+
+// ── Profile Restore on Refresh ───────────────────────────────
+// This runs AFTER loadProfile is defined (bottom of file = guaranteed safe).
+// auth.js sets sessionStorage('restoreProfile') if URL hash had a username on page load.
+(function restoreProfileOnRefresh() {
+  const username = sessionStorage.getItem('restoreProfile');
+  if (!username || !window.APP || !window.APP.user) return;
+  sessionStorage.removeItem('restoreProfile'); // clear so it only fires once
+  const isOwn = username === window.APP.user.username;
+  loadProfile(username, isOwn);
+})();

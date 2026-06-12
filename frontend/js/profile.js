@@ -75,7 +75,7 @@ async function loadProfile(username, isOwn) {
             ${(isOwn || !user.isPrivate || isFollowing) && posts.length === 0 ? '<div class="empty-posts">No posts yet.</div>' : ''}
             ${(isOwn || !user.isPrivate || isFollowing) ? posts.map(p => `
               <div class="profile-grid-item">
-              ${p.image ? `<img src="${p.image}" alt="">` : `<div class="emoji-post">${p.emoji || '📷'}</div>`}
+              ${p.image ? `<img src="${getImageUrl(p.image)}" alt="">` : `<div class="emoji-post">${p.emoji || '📷'}</div>`}
               </div>
             `).join('') : ''}
           </div>

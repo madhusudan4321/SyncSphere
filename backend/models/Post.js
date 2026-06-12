@@ -6,6 +6,7 @@ const postSchema = new mongoose.Schema({
   publicId: { type: String, default: '' },
   emoji:    { type: String, default: '📷' },
   caption:  { type: String, default: '' },
+  tags:     [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   likes:    [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 

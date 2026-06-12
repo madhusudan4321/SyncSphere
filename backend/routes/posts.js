@@ -25,7 +25,8 @@ router.get('/feed', protect, async (req, res) => {
     const ids = [...me.following, me._id];
     const posts = await Post.find({ user: { $in: ids } })
       .sort({ createdAt: -1 })
-      .populate('user', 'username name avatar');
+      .populate('user', 'username name avatar')
+      .populate('tags', 'username');
     res.json(posts);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
@@ -79,6 +80,21 @@ router.delete('/:id', protect, async (req, res) => {
 
     await post.deleteOne();
     res.json({ message: 'Post deleted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// PUT /api/posts/:id — edit caption and/or tags
+router.put('/:id', protect, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.user.toString() !== req.user.id)
+      return res.status(403).json({ message: 'Not authorized' });
+    if (req.body.caption !== undefined) post.caption = req.body.caption;
+    if (req.body.tags   !== undefined) post.tags    = req.body.tags;
+    await post.save();
+    await post.populate('user', 'username name avatar');
+    res.json(post);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

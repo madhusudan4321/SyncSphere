@@ -551,34 +551,76 @@ async function lightboxDeleteComment(postId, commentId) {
   loadProfile(username, isOwn);
 })();
 
-// ── Avatar Upload ─────────────────────────────────────────────
+// ── Avatar Upload with Crop ──────────────────────────────
+let _cropperInstance = null;
+
 function triggerAvatarUpload() {
   document.getElementById('avatar-upload-input').click();
 }
 
-async function handleAvatarUpload(input) {
+function handleAvatarUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  const picEl = document.querySelector('.profile-pic');
-  if (picEl) picEl.style.opacity = '0.5';
-  try {
-    const form = new FormData();
-    form.append('avatar', file);
-    const token = localStorage.getItem('pic_token');
-    const res = await fetch('https://syncsphere-api.onrender.com/api/users/avatar', {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: form
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Upload failed');
-    window.APP.user.avatar = data.avatar;
-    localStorage.setItem('pic_user', JSON.stringify(window.APP.user));
-    showToast('Profile photo updated! 🎉');
-    loadProfile(window.APP.user.username, true);
-  } catch (err) {
-    if (picEl) picEl.style.opacity = '1';
-    showToast(err.message);
-  }
   input.value = '';
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const modal = document.getElementById('crop-modal');
+    const imgEl = document.getElementById('crop-image');
+    if (_cropperInstance) { _cropperInstance.destroy(); _cropperInstance = null; }
+    imgEl.src = e.target.result;
+    modal.style.display = 'flex';
+    setTimeout(() => {
+      _cropperInstance = new Cropper(imgEl, {
+        aspectRatio: 1,
+        viewMode: 1,
+        dragMode: 'move',
+        autoCropArea: 0.85,
+        cropBoxMovable: false,
+        cropBoxResizable: false,
+        toggleDragModeOnDblclick: false,
+        guides: false,
+        highlight: false,
+      });
+    }, 80);
+  };
+  reader.readAsDataURL(file);
+}
+
+function closeCropModal() {
+  document.getElementById('crop-modal').style.display = 'none';
+  if (_cropperInstance) { _cropperInstance.destroy(); _cropperInstance = null; }
+}
+
+async function applyCrop() {
+  if (!_cropperInstance) return;
+  const btn = document.getElementById('apply-crop-btn');
+  btn.textContent = 'Uploading...';
+  btn.disabled = true;
+  const canvas = _cropperInstance.getCroppedCanvas({ width: 400, height: 400, imageSmoothingQuality: 'high' });
+  canvas.toBlob(async (blob) => {
+    closeCropModal();
+    const picEl = document.querySelector('.profile-pic');
+    if (picEl) picEl.style.opacity = '0.5';
+    try {
+      const form  = new FormData();
+      form.append('avatar', blob, 'avatar.jpg');
+      const token = localStorage.getItem('pic_token');
+      const res   = await fetch('https://syncsphere-api.onrender.com/api/users/avatar', {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: form
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Upload failed');
+      window.APP.user.avatar = data.avatar;
+      localStorage.setItem('pic_user', JSON.stringify(window.APP.user));
+      showToast('Profile photo updated!');
+      loadProfile(window.APP.user.username, true);
+    } catch (err) {
+      if (picEl) picEl.style.opacity = '1';
+      showToast(err.message);
+    }
+    btn.textContent = 'Apply';
+    btn.disabled = false;
+  }, 'image/jpeg', 0.92);
 }

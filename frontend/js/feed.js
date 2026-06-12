@@ -67,7 +67,7 @@ function buildPostCard(p) {
   const commentCount = p.commentCount || 0;
   card.innerHTML = `
     <div class="post-header">
-      <div class="post-avatar" onclick="viewProfile('${safeU}')"><div class="av-inner">${getInitials(safeN)}</div></div>
+      <div class="post-avatar" onclick="viewProfile('${safeU}')">${avatarInner(p.user, 12)}</div>
       <div class="post-user" onclick="viewProfile('${safeU}')">${safeU}</div>
       <svg onclick="openPostMenu('${p._id}')" width="20" height="20" fill="currentColor" viewBox="0 0 24 24" style="cursor:pointer;color:var(--muted);flex-shrink:0;padding:4px;box-sizing:content-box"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
     </div>

@@ -19,7 +19,7 @@ function searchUsers(q) {
         const safeBio      = sanitize(u.bio ? u.bio.slice(0, 28) : '');
         return `
         <div class="user-result" onclick="viewProfile('${safeUsername}')">
-          <div class="u-av"><div class="u-av-inner">${getInitials(safeName || safeUsername)}</div></div>
+          <div class="u-av">${avatarInner(u, 15)}</div>
           <div class="u-info">
             <p>${safeUsername}</p>
             <p>${safeName}${safeBio ? ' · ' + safeBio : ''}</p>

@@ -69,4 +69,15 @@ function sanitize(str) {
     .replace(/'/g, '&#x27;');
 }
 
-window.APP = { user: null };
+window.APP = { user: null };
+
+// Returns the inner HTML for any avatar circle.
+// Shows the real photo (object-fit:cover) or falls back to styled initials.
+function avatarInner(user, fontSize) {
+  if (user && user.avatar) {
+    return `<img src="${user.avatar}" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;">`;
+  }
+  const name = (user && (user.name || user.username)) || '';
+  const fs = fontSize ? ` style="font-size:${fontSize}px"` : '';
+  return `<div class="av-inner"${fs}>${getInitials(name)}</div>`;
+}

@@ -1,8 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('../config/cloudinary');
 const User = require('../models/User');
 const Post = require('../models/Post');
 const { protect } = require('../middleware/auth');
+
+// Cloudinary storage for avatars — 400×400 face-fill crop
+const avatarStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'syncsphere/avatars',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face', quality: 'auto' }],
+  },
+});
+const uploadAvatar = multer({ storage: avatarStorage });
 
 // GET /api/users/search?q=
 router.get('/search', protect, async (req, res) => {
@@ -165,6 +179,19 @@ router.post('/:id/report', protect, async (req, res) => {
     target.reports.push({ reason, reportedBy: req.user.id });
     await target.save();
     res.json({ message: 'Report submitted' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// PUT /api/users/avatar — upload/replace profile picture
+router.put('/avatar', protect, uploadAvatar.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No image provided' });
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { avatar: req.file.path },
+      { new: true }
+    ).select('-password');
+    res.json({ avatar: user.avatar });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

@@ -38,7 +38,13 @@ async function loadProfile(username, isOwn) {
       <div class="profile-container">
           <div class="profile-header">
             <div class="profile-top">
-              <div class="profile-pic"><div class="pp-inner">${getInitials(user.name || user.username)}</div></div>
+              <div class="profile-pic${isOwn ? ' pp-clickable' : ''}"${isOwn ? ' onclick="triggerAvatarUpload()" title="Change profile photo"' : ''} style="position:relative">
+                ${user.avatar
+                  ? `<img src="${user.avatar}" alt="" class="pp-avatar">`
+                  : `<div class="pp-inner" style="font-size:26px;font-weight:700">${getInitials(user.name || user.username)}</div>`
+                }
+                ${isOwn ? '<div class="pp-edit-overlay"><svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>' : ''}
+              </div>
               <div class="profile-stats">
                 <div class="stat-item"><div class="s-num">${posts.length}</div><div class="s-label">Posts</div></div>
                 <div class="stat-item" onclick="openFollowModal('followers','${safeUsername}')" style="cursor:pointer"><div class="s-num">${user.followers.length}</div><div class="s-label">Followers</div></div>
@@ -192,7 +198,7 @@ async function loadProfile(username, isOwn) {
       list.style.display = 'block';
       list.innerHTML = requests.map(r => `
         <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)">
-          <div class="u-av"><div class="u-av-inner">${getInitials(r.name || r.username)}</div></div>
+          <div class="u-av">${avatarInner(r, 15)}</div>
           <div style="flex:1">
             <p style="font-size:14px;font-weight:600">${r.username}</p>
             <p style="font-size:12px;color:var(--muted)">${r.name || ''}</p>
@@ -262,11 +268,7 @@ async function showBlockedUsers() {
             <p style="text-align:center;color:var(--muted);padding:40px;font-size:14px">No blocked users</p>
           ` : blocked.map(u => `
             <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)">
-              <div style="width:44px;height:44px;border-radius:50%;background:var(--grad);padding:2px;flex-shrink:0">
-                <div style="width:100%;height:100%;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;border:2px solid #fff">
-                  ${getInitials(u.name || u.username)}
-                </div>
-              </div>
+              <div class="u-av">${avatarInner(u, 14)}</div>
               <div style="flex:1">
                 <p style="font-size:14px;font-weight:600">${u.username}</p>
                 <p style="font-size:12px;color:var(--muted)">${u.name || ''}</p>
@@ -412,7 +414,7 @@ async function openFollowModal(type, username) {
     list.innerHTML = users.map(u => {
       const su = sanitize(u.username||''), sn = sanitize(u.name||'');
       return `<div onclick="document.getElementById('follow-modal').remove();viewProfile('${su}')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-        <div class="u-av"><div class="u-av-inner">${getInitials(sn||su)}</div></div>
+        <div class="u-av">${avatarInner(u, 15)}</div>
         <div class="u-info"><p style="font-size:14px;font-weight:600">${su}</p><p style="font-size:12px;color:var(--muted)">${sn}</p></div>
       </div>`;
     }).join('');
@@ -459,7 +461,7 @@ async function loadLightboxContent(postId) {
         ? `<img src="${imgSrc}" alt="" style="width:100%;max-height:55vh;object-fit:contain;background:#000;display:block">`
         : `<div style="width:100%;aspect-ratio:1;background:#111;display:flex;align-items:center;justify-content:center;font-size:80px">${p.emoji||'📷'}</div>`}
       <div style="padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)">
-        <div class="post-avatar" style="cursor:pointer" onclick="document.getElementById('post-lightbox').remove();viewProfile('${safeU}')"><div class="av-inner">${getInitials(p.user.name||p.user.username)}</div></div>
+        <div class="post-avatar" style="cursor:pointer" onclick="document.getElementById('post-lightbox').remove();viewProfile('${safeU}')">${avatarInner(p.user, 14)}</div>
         <strong style="font-size:14px;cursor:pointer" onclick="document.getElementById('post-lightbox').remove();viewProfile('${safeU}')">${safeU}</strong>
         <span style="margin-left:auto;font-size:12px;color:var(--muted)">${timeAgo(p.createdAt)}</span>
       </div>
@@ -477,7 +479,7 @@ async function loadLightboxContent(postId) {
               const cu = sanitize(c.user.username), ct = sanitize(c.text);
               const own = c.user._id === window.APP.user._id;
               return `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)">
-                <div class="post-avatar" style="cursor:pointer;width:28px;height:28px" onclick="document.getElementById('post-lightbox').remove();viewProfile('${cu}')"><div class="av-inner" style="font-size:9px">${getInitials(c.user.name||c.user.username)}</div></div>
+                <div class="post-avatar" style="cursor:pointer;width:28px;height:28px" onclick="document.getElementById('post-lightbox').remove();viewProfile('${cu}')">${avatarInner(c.user, 9)}</div>
                 <div style="flex:1"><span style="font-weight:700;font-size:13px">${cu}</span> <span style="font-size:13px">${ct}</span><div style="font-size:11px;color:var(--muted);margin-top:2px">${timeAgo(c.createdAt)}</div></div>
                 ${own ? `<button onclick="lightboxDeleteComment('${postId}','${c._id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1">×</button>` : ''}
               </div>`;
@@ -522,7 +524,7 @@ async function lightboxSubmitComment(postId) {
       const cu = sanitize(c.user.username), ct = sanitize(c.text);
       const div = document.createElement('div');
       div.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)';
-      div.innerHTML = `<div class="post-avatar" style="width:28px;height:28px"><div class="av-inner" style="font-size:9px">${getInitials(c.user.name||c.user.username)}</div></div>
+      div.innerHTML = `<div class="post-avatar" style="width:28px;height:28px">${avatarInner(c.user, 9)}</div>
         <div style="flex:1"><span style="font-weight:700;font-size:13px">${cu}</span> <span style="font-size:13px">${ct}</span><div style="font-size:11px;color:var(--muted);margin-top:2px">just now</div></div>
         <button onclick="lightboxDeleteComment('${postId}','${c._id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1">×</button>`;
       list.appendChild(div);
@@ -541,12 +543,42 @@ async function lightboxDeleteComment(postId, commentId) {
 }
 
 // ── Profile Restore on Refresh ───────────────────────────────
-// This runs AFTER loadProfile is defined (bottom of file = guaranteed safe).
-// auth.js sets sessionStorage('restoreProfile') if URL hash had a username on page load.
 (function restoreProfileOnRefresh() {
   const username = sessionStorage.getItem('restoreProfile');
   if (!username || !window.APP || !window.APP.user) return;
-  sessionStorage.removeItem('restoreProfile'); // clear so it only fires once
+  sessionStorage.removeItem('restoreProfile');
   const isOwn = username === window.APP.user.username;
   loadProfile(username, isOwn);
 })();
+
+// ── Avatar Upload ─────────────────────────────────────────────
+function triggerAvatarUpload() {
+  document.getElementById('avatar-upload-input').click();
+}
+
+async function handleAvatarUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const picEl = document.querySelector('.profile-pic');
+  if (picEl) picEl.style.opacity = '0.5';
+  try {
+    const form = new FormData();
+    form.append('avatar', file);
+    const token = localStorage.getItem('pic_token');
+    const res = await fetch('https://syncsphere-api.onrender.com/api/users/avatar', {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: form
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Upload failed');
+    window.APP.user.avatar = data.avatar;
+    localStorage.setItem('pic_user', JSON.stringify(window.APP.user));
+    showToast('Profile photo updated! 🎉');
+    loadProfile(window.APP.user.username, true);
+  } catch (err) {
+    if (picEl) picEl.style.opacity = '1';
+    showToast(err.message);
+  }
+  input.value = '';
+}

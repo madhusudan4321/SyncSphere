@@ -13,15 +13,20 @@ function searchUsers(q) {
       const users = await api.get(`/users/search?q=${encodeURIComponent(q)}`);
       const res = document.getElementById('search-results');
       if (users.length === 0) { res.innerHTML = '<p style="text-align:center;color:var(--muted);padding:30px;font-size:14px">No users found</p>'; return; }
-      res.innerHTML = users.map(u => `
-        <div class="user-result" onclick="viewProfile('${u.username}')">
-          <div class="u-av"><div class="u-av-inner">${getInitials(u.name || u.username)}</div></div>
+      res.innerHTML = users.map(u => {
+        const safeUsername = sanitize(u.username);
+        const safeName     = sanitize(u.name || '');
+        const safeBio      = sanitize(u.bio ? u.bio.slice(0, 28) : '');
+        return `
+        <div class="user-result" onclick="viewProfile('${safeUsername}')">
+          <div class="u-av"><div class="u-av-inner">${getInitials(safeName || safeUsername)}</div></div>
           <div class="u-info">
-            <p>${u.username}</p>
-            <p>${u.name || ''}${u.bio ? ' · ' + u.bio.slice(0, 28) : ''}</p>
+            <p>${safeUsername}</p>
+            <p>${safeName}${safeBio ? ' · ' + safeBio : ''}</p>
           </div>
         </div>
-      `).join('');
+        `;
+      }).join('');
     } catch (err) { showToast(err.message); }
   }, 300);
 }

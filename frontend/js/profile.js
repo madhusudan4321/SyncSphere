@@ -8,13 +8,17 @@ async function loadProfile(username, isOwn) {
       const blockedList = await api.get('/users/blocked/list').catch(() => []);
       const iBlockedThem = blockedList.some(u => u._id === user._id);
       const hasPendingRequest = user.followRequests && user.followRequests.some(f => f._id === window.APP.user._id || f === window.APP.user._id);
+      const safeUsername  = sanitize(user.username);
+      const safeName      = sanitize(user.name || user.username);
+      const safeBio       = sanitize(user.bio || '');
+      const safeWebsite   = sanitize(user.website || '');
       pv.innerHTML = `
-      ${!isOwn ? `<div class="back-link" onclick="loadProfile('${window.APP.user.username}',true)">
+      ${!isOwn ? `<div class="back-link" onclick="loadProfile('${safeUsername}',true)">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg> Back
       </div>` : ''}
       ${isOwn ? `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 0">
-          <p style="font-size:16px;font-weight:700">${user.username}</p>
+          <p style="font-size:16px;font-weight:700">${safeUsername}</p>
           <svg onclick="openProfileMenu()" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="cursor:pointer">
             <line x1="3" y1="6" x2="21" y2="6"/>
             <line x1="3" y1="12" x2="21" y2="12"/>
@@ -33,9 +37,9 @@ async function loadProfile(username, isOwn) {
               </div>
             </div>
             <div>
-              <div class="p-name">${user.name || user.username}</div>
-              ${user.bio     ? `<div class="p-bio">${user.bio}</div>`        : ''}
-              ${user.website ? `<div class="p-web">${user.website}</div>`    : ''}
+              <div class="p-name">${safeName}</div>
+              ${safeBio     ? `<div class="p-bio">${safeBio}</div>`       : ''}
+              ${safeWebsite ? `<div class="p-web">${safeWebsite}</div>`   : ''}
             </div>
             <div class="profile-btns">
             ${isOwn ? `
@@ -45,7 +49,7 @@ async function loadProfile(username, isOwn) {
               </button>
             ` : `
             ${iBlockedThem ? `
-          <button onclick="unblockUser('${user._id}','${user.username}')" style="background:#ed4956;color:#fff;border-color:#ed4956;flex:1;padding:7px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none">
+          <button onclick="unblockUser('${user._id}','${safeUsername}')" style="background:#ed4956;color:#fff;border-color:#ed4956;flex:1;padding:7px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none">
             Unblock
           </button>
           ` : `
@@ -71,7 +75,7 @@ async function loadProfile(username, isOwn) {
             ${(isOwn || !user.isPrivate || isFollowing) && posts.length === 0 ? '<div class="empty-posts">No posts yet.</div>' : ''}
             ${(isOwn || !user.isPrivate || isFollowing) ? posts.map(p => `
               <div class="profile-grid-item">
-                ${p.image ? `<img src="https://syncsphere-api.onrender.com${p.image}" alt="">` : `<div class="emoji-post">${p.emoji || '📷'}</div>`}
+              ${p.image ? `<img src="${p.image}" alt="">` : `<div class="emoji-post">${p.emoji || '📷'}</div>`}
               </div>
             `).join('') : ''}
           </div>

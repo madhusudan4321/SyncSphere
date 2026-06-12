@@ -21,14 +21,17 @@ async function loadThreads() {
         const div = document.createElement('div');
         div.className = 'chat-thread';
         div.style.background = '#fff8f0';
+        const safeFromUser = sanitize(r.from.name || r.from.username);
+        const safeFromName = sanitize(r.from.username);
+        const safeText     = sanitize(r.text.slice(0, 40));
         div.innerHTML = `
-          <div class="t-av"><div class="t-av-inner">${getInitials(r.from.name || r.from.username)}</div></div>
+          <div class="t-av"><div class="t-av-inner">${getInitials(safeFromUser)}</div></div>
           <div class="t-info">
-            <div class="t-name">${r.from.username} <span style="font-size:11px;color:#f09433;font-weight:400">• wants to message you</span></div>
-            <div class="t-preview">${r.text.slice(0, 40)}</div>
+            <div class="t-name">${safeFromName} <span style="font-size:11px;color:#f09433;font-weight:400">• wants to message you</span></div>
+            <div class="t-preview">${safeText}</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px">
-            <button onclick="acceptRequest('${r._id}','${r.from._id}','${r.from.username}',event)" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer">Accept</button>
+            <button onclick="acceptRequest('${r._id}','${r.from._id}','${safeFromName}',event)" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer">Accept</button>
             <button onclick="declineRequest('${r._id}',event)" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer">Decline</button>
           </div>
         `;
@@ -51,12 +54,18 @@ async function loadThreads() {
       if (!t.user || !t.user._id) return;
       const div = document.createElement('div');
       div.className = 'chat-thread';
+      const safeUser    = sanitize(t.user.name || t.user.username);
+      const safeUname   = sanitize(t.user.username);
+      const lastTxt     = t.lastMsg ? sanitize(t.lastMsg.text.slice(0, 40)) : '';
+      const previewText = t.lastMsg
+        ? (t.lastMsg.from._id === window.APP.user._id ? 'You: ' : '') + lastTxt
+        : '';
       div.onclick = () => openChatWindow(t.user._id, t.user.username);
       div.innerHTML = `
-        <div class="t-av"><div class="t-av-inner">${getInitials(t.user.name || t.user.username)}</div></div>
+        <div class="t-av"><div class="t-av-inner">${getInitials(safeUser)}</div></div>
         <div class="t-info">
-          <div class="t-name">${t.user.username}</div>
-          <div class="t-preview">${t.lastMsg ? (t.lastMsg.from._id === window.APP.user._id ? 'You: ' : '') + t.lastMsg.text.slice(0, 40) : ''}</div>
+          <div class="t-name">${safeUname}</div>
+          <div class="t-preview">${previewText}</div>
         </div>
         ${t.lastMsg ? `<div class="t-time">${timeAgo(t.lastMsg.createdAt)}</div>` : ''}
       `;
@@ -122,10 +131,11 @@ async function loadMessages() {
       return;
     }
     msgs.forEach(m => {
-      const mine = m.from._id === window.APP.user._id;
-      const row = document.createElement('div');
+      const mine    = m.from._id === window.APP.user._id;
+      const safeMsg = sanitize(m.text);
+      const row     = document.createElement('div');
       row.className = 'msg-row ' + (mine ? 'mine' : 'other');
-      row.innerHTML = `<div class="msg-bubble">${m.text}</div><div class="msg-time">${timeAgo(m.createdAt)}</div>`;
+      row.innerHTML = `<div class="msg-bubble">${safeMsg}</div><div class="msg-time">${timeAgo(m.createdAt)}</div>`;
       mc.appendChild(row);
     });
     if (atBottom) mc.scrollTop = mc.scrollHeight;
@@ -202,12 +212,16 @@ function searchNewChat(q) {
   newChatTimer = setTimeout(async () => {
     try {
       const users = await api.get(`/users/search?q=${encodeURIComponent(q)}`);
-      res.innerHTML = users.map(u => `
-        <div class="user-result" style="padding:8px 0" onclick="startChatWith('${u._id}','${u.username}')">
-          <div class="u-av"><div class="u-av-inner">${getInitials(u.name || u.username)}</div></div>
-          <div class="u-info"><p>${u.username}</p><p>${u.name || ''}</p></div>
-        </div>
-      `).join('');
+      res.innerHTML = users.map(u => {
+        const safeUname = sanitize(u.username);
+        const safeName  = sanitize(u.name || '');
+        return `
+          <div class="user-result" style="padding:8px 0" onclick="startChatWith('${u._id}','${u.username}')">
+            <div class="u-av"><div class="u-av-inner">${getInitials(safeName || safeUname)}</div></div>
+            <div class="u-info"><p>${safeUname}</p><p>${safeName}</p></div>
+          </div>
+        `;
+      }).join('');
     } catch (err) {}
   }, 300);
 }
@@ -360,59 +374,6 @@ async function submitReport(userId, username, reason) {
   try {
     await api.post(`/users/${userId}/report`, { reason });
     showToast(`Report submitted. Thank you for keeping SyncSphere safe.`);
-  } catch (err) {
-    showToast('Report submitted!');
-  }
-}
-
-async function chatMenuBlockUser(userId, username) {
-  document.getElementById('chat-user-menu')?.remove();
-  const confirm = window.confirm(`Block @${username}? They won't be able to message or follow you.`);
-  if (!confirm) return;
-  try {
-    await api.post(`/users/${userId}/block`);
-    showToast(`@${username} has been blocked`);
-    closeChatWindow();
-  } catch (err) { showToast(err.message); }
-}
-
-function chatMenuReportUser(userId, username) {
-  document.getElementById('chat-user-menu')?.remove();
-  showReportModal(userId, username);
-}
-
-function showReportModal(userId, username) {
-  const existing = document.getElementById('report-modal');
-  if (existing) existing.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'report-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px';
-  modal.innerHTML = `
-    <div style="background:var(--surface);border-radius:16px;width:100%;max-width:380px;overflow:hidden">
-      <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <h3 style="font-size:16px;font-weight:700">Report @${username}</h3>
-        <button onclick="document.getElementById('report-modal').remove()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);line-height:1">×</button>
-      </div>
-      <div style="padding:16px">
-        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Why are you reporting this account?</p>
-        ${['Spam or fake account','Inappropriate content','Harassment or bullying','Hate speech','Scam or fraud','Other'].map(reason => `
-          <div onclick="submitReport('${userId}','${username}','${reason}')" style="padding:12px 16px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;font-size:14px;transition:.1s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-            ${reason}
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
-  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
-  document.body.appendChild(modal);
-}
-
-async function submitReport(userId, username, reason) {
-  document.getElementById('report-modal')?.remove();
-  try {
-    await api.post(`/users/${userId}/report`, { reason });
-    showToast('Report submitted. Thank you for keeping SyncSphere safe.');
   } catch (err) {
     showToast('Report submitted!');
   }

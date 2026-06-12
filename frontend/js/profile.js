@@ -1,8 +1,12 @@
 async function loadProfile(username, isOwn) {
-  if (isOwn) checkFollowRequests();
-    const pv = document.getElementById('profile-view');
-    pv.innerHTML = '<div class="loader">Loading...</div>';
-    try {
+  if (isOwn) {
+    checkFollowRequests();
+    // Clear hash when viewing own profile
+    history.replaceState(null, '', window.location.pathname);
+  }
+  const pv = document.getElementById('profile-view');
+  pv.innerHTML = '<div class="loader">Loading...</div>';
+  try {
       const { user, posts } = await api.get(`/users/${username}`);
       const isFollowing = user.followers.some(f => f._id === window.APP.user._id);
       const blockedList = await api.get('/users/blocked/list').catch(() => []);
@@ -13,7 +17,7 @@ async function loadProfile(username, isOwn) {
       const safeBio       = sanitize(user.bio || '');
       const safeWebsite   = sanitize(user.website || '');
       pv.innerHTML = `
-      ${!isOwn ? `<div class="back-link" onclick="loadProfile('${safeUsername}',true)">
+      ${!isOwn ? `<div class="back-link" onclick="loadProfile('${sanitize(window.APP.user.username)}',true)">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg> Back
       </div>` : ''}
       ${isOwn ? `
@@ -118,7 +122,14 @@ async function loadProfile(username, isOwn) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('tab-profile').classList.add('active');
     document.getElementById('nav-profile').classList.add('active');
-    loadProfile(username, username === window.APP.user.username);
+    const isOwn = username === window.APP.user.username;
+    // Track which profile is being viewed via URL hash so refresh restores it
+    if (isOwn) {
+      history.replaceState(null, '', window.location.pathname);
+    } else {
+      history.replaceState(null, '', '#@' + username);
+    }
+    loadProfile(username, isOwn);
   }
   
   function openChatFromProfile(userId, username) {
@@ -386,7 +397,7 @@ async function openFollowModal(type, username) {
   document.body.appendChild(modal);
 
   try {
-    const data  = await api.get(`/users/${username}/profile`);
+    const data  = await api.get(`/users/${username}`);
     const users = type === 'followers' ? data.user.followers : data.user.following;
     const list  = document.getElementById('follow-list');
     if (!users || users.length === 0) {

@@ -13,7 +13,9 @@ async function loadFeed(reset = true) {
   if (!feedHasMore || feedLoading) return;
   feedLoading = true;
   try {
-    const { posts, hasMore } = await api.get(`/posts/feed?page=${feedPage}&limit=10`);
+    const result = await api.get(`/posts/feed?page=${feedPage}&limit=10`);
+    const posts   = Array.isArray(result.posts) ? result.posts : [];
+    const hasMore = result.hasMore || false;
     if (reset) fp.innerHTML = '';
     if (feedPage === 1 && posts.length === 0) {
       fp.innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px;font-size:14px">No posts yet. Follow users or share a photo!</p>';

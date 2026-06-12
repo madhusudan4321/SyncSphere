@@ -50,7 +50,21 @@ async function authLogin() {
       window.APP.user = JSON.parse(user);
       document.getElementById('chat-title').textContent = window.APP.user.username;
       switchScreen('app');
-      switchTab('home');
+
+      // Restore profile view if user refreshed while viewing someone's profile
+      const hash = window.location.hash; // e.g. "#@ruhii"
+      if (hash && hash.startsWith('#@')) {
+        const profileUsername = hash.slice(2); // strip "#@"
+        // Switch to profile tab without auto-loading own profile
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('tab-profile').classList.add('active');
+        document.getElementById('nav-profile').classList.add('active');
+        setTimeout(() => loadProfile(profileUsername, profileUsername === window.APP.user.username), 100);
+      } else {
+        switchTab('home');
+      }
+
       setTimeout(() => autoRefreshOnLogin(), 500);
       setTimeout(() => connectSocket(), 300);
     }

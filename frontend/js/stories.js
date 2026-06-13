@@ -160,7 +160,7 @@ function _renderViewer() {
 
     <!-- Media -->
     <div class="sv-media" id="sv-media">
-      <img src="${story.media}" alt="" style="width:100%;height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none" draggable="false">
+      <img src="${story.media}" alt="" style="width:100%;height:100%;object-fit:contain;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none" draggable="false" oncontextmenu="return false">
     </div>
 
     <!-- Tap zones: prev / next -->
@@ -189,6 +189,9 @@ function _renderViewer() {
   `;
 
   document.body.appendChild(viewer);
+
+  // Block browser context menu on the entire viewer (prevents long-press download on mobile)
+  viewer.addEventListener('contextmenu', e => e.preventDefault());
 
   // Swipe support
   _initStorySwipe(viewer);

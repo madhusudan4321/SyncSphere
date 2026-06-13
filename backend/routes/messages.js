@@ -108,7 +108,8 @@ router.get('/:userId', protect, async (req, res) => {
       $or: [
         { from: req.user.id, to: req.params.userId },
         { from: req.params.userId, to: req.user.id }
-      ]
+      ],
+      deletedForAll: { $ne: true }
     }).sort({ createdAt: 1 }).populate('from to', 'username name');
     res.json(messages);
   } catch (err) { res.status(500).json({ message: err.message }); }
@@ -133,6 +134,59 @@ router.post('/', protect, async (req, res) => {
     const msg = await Message.create({ from: req.user.id, to, text });
     await msg.populate('from to', 'username name');
     res.status(201).json(msg);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// DELETE /api/messages/:id — unsend message (sender only, deletes for both)
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const msg = await Message.findById(req.params.id);
+    if (!msg) return res.status(404).json({ message: 'Message not found' });
+    if (msg.from.toString() !== req.user.id)
+      return res.status(403).json({ message: 'Only the sender can unsend a message' });
+    msg.deletedForAll = true;
+    msg.text = 'This message was unsent';
+    await msg.save();
+    res.json({ message: 'Message unsent' });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// PUT /api/messages/:id — edit message text (sender only)
+router.put('/:id', protect, async (req, res) => {
+  try {
+    const msg = await Message.findById(req.params.id);
+    if (!msg) return res.status(404).json({ message: 'Message not found' });
+    if (msg.from.toString() !== req.user.id)
+      return res.status(403).json({ message: 'Only the sender can edit a message' });
+    if (!req.body.text || !req.body.text.trim())
+      return res.status(400).json({ message: 'Text cannot be empty' });
+    msg.text = req.body.text.trim();
+    msg.edited = true;
+    await msg.save();
+    await msg.populate('from to', 'username name');
+    res.json(msg);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+// POST /api/messages/:id/react — add or toggle emoji reaction
+router.post('/:id/react', protect, async (req, res) => {
+  try {
+    const msg = await Message.findById(req.params.id);
+    if (!msg) return res.status(404).json({ message: 'Message not found' });
+    const { emoji } = req.body;
+    if (!emoji) return res.status(400).json({ message: 'Emoji required' });
+    const idx = msg.reactions.findIndex(r => r.user.toString() === req.user.id);
+    if (idx >= 0) {
+      if (msg.reactions[idx].emoji === emoji) {
+        msg.reactions.splice(idx, 1); // toggle off same emoji
+      } else {
+        msg.reactions[idx].emoji = emoji; // change to different emoji
+      }
+    } else {
+      msg.reactions.push({ user: req.user.id, emoji });
+    }
+    await msg.save();
+    res.json({ reactions: msg.reactions });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

@@ -180,11 +180,64 @@ function closePostMenuAnd(fn) {
 }
 
 async function deletePost(postId) {
-  if (!confirm('Delete this post? This cannot be undone.')) return;
+  showDeletePostModal(postId);
+}
+
+function showDeletePostModal(postId) {
+  document.getElementById('delete-post-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'delete-post-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:flex-end;justify-content:center;animation:fadeInOverlay .2s ease';
+  modal.innerHTML = `
+    <div style="background:var(--surface);width:100%;max-width:480px;border-radius:24px 24px 0 0;overflow:hidden;padding-bottom:env(safe-area-inset-bottom);animation:slideUpSheet .25s cubic-bezier(.32,1,.26,1)">
+      <div style="padding:8px 0 4px;display:flex;justify-content:center">
+        <div style="width:36px;height:4px;background:var(--border);border-radius:4px"></div>
+      </div>
+      <div style="padding:20px 24px 8px;text-align:center">
+        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#ff6b6b22,#ed495622);border:2px solid #ed495630;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px">🗑️</div>
+        <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Delete Post?</h3>
+        <p style="font-size:13px;color:var(--muted);line-height:1.5">This will permanently remove your post and all its comments. This action cannot be undone.</p>
+      </div>
+      <div style="padding:16px 24px 20px;display:flex;flex-direction:column;gap:10px">
+        <button id="confirm-delete-post-btn" onclick="_execDeletePost('${postId}')" style="width:100%;padding:14px;background:linear-gradient(135deg,#ff6b6b,#ed4956);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px #ed495640;transition:transform .1s,box-shadow .1s" onmousedown="this.style.transform='scale(.98)'" onmouseup="this.style.transform='scale(1)'">
+          Delete Post
+        </button>
+        <button onclick="document.getElementById('delete-post-modal').remove()" style="width:100%;padding:13px;background:var(--surface2);color:var(--text);border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer;transition:.15s" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--surface2)'">
+          Cancel
+        </button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+async function _execDeletePost(postId) {
+  const btn = document.getElementById('confirm-delete-post-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
   try {
     await api.del(`/posts/${postId}`);
-    showToast('Post deleted'); delete postDataMap[postId]; loadFeed();
-  } catch (err) { showToast(err.message); }
+    document.getElementById('delete-post-modal')?.remove();
+    showToast('🗑️ Post deleted');
+    // Surgically remove the card from DOM instead of full reload
+    delete postDataMap[postId];
+    // Invalidate localStorage cache (filter out deleted post)
+    try {
+      const cached = JSON.parse(localStorage.getItem(FEED_CACHE_KEY) || '[]');
+      localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(cached.filter(p => p._id !== postId)));
+    } catch(e) { localStorage.removeItem(FEED_CACHE_KEY); }
+    // Find and remove the post card from the live DOM
+    const fp = document.getElementById('feed-posts');
+    if (fp) {
+      // Find any post card that contains a like element with this postId
+      const likeEl = document.getElementById('likes-' + postId);
+      const card = likeEl?.closest('.post-card');
+      if (card) card.remove();
+      else loadFeed(); // fallback: reload if card ref not found
+    }
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Delete Post'; }
+    showToast('❌ ' + err.message);
+  }
 }
 
 function openEditCaption(postId) {

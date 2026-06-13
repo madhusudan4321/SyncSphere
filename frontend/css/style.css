@@ -60,8 +60,8 @@ input,textarea,button{font-family:var(--font)}
 .post-avatar{width:34px;height:34px;border-radius:50%;background:var(--grad);padding:2px;cursor:pointer;flex-shrink:0}
 .av-inner{width:100%;height:100%;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;border:2px solid #fff}
 .post-user{font-size:13px;font-weight:600;cursor:pointer;flex:1}
-.post-image{width:100%;aspect-ratio:1;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:80px;overflow:hidden}
-.post-image img{width:100%;height:100%;object-fit:cover;display:block}
+.post-image{width:100%;max-height:600px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:80px;overflow:hidden}
+.post-image img{width:100%;height:100%;max-height:600px;object-fit:contain;display:block;background:var(--surface2)}
 .post-actions{display:flex;align-items:center;gap:14px;padding:10px 14px 6px}
 .post-actions svg{cursor:pointer;color:var(--text)}
 .post-actions .save{margin-left:auto}
@@ -107,6 +107,11 @@ input,textarea,button{font-family:var(--font)}
 .msg-row.mine .msg-bubble{background:var(--accent);color:#fff;border-bottom-right-radius:4px}
 .msg-row.other .msg-bubble{background:var(--surface2);color:var(--text);border-bottom-left-radius:4px}
 .msg-time{font-size:11px;color:var(--muted)}
+.msg-reactions-wrap{display:flex;gap:4px;padding:0 14px 2px;flex-wrap:wrap}
+.msg-reactions-wrap.mine{justify-content:flex-end}
+.msg-reactions-wrap.other{justify-content:flex-start}
+.msg-reaction{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 7px;font-size:16px;cursor:pointer;transition:.1s;line-height:1.4}
+.msg-reaction:hover{background:var(--border);transform:scale(1.15)}
 .chat-input-row{padding:10px 12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--surface)}
 .chat-input-row input{flex:1;border:1px solid var(--border);border-radius:22px;padding:9px 16px;font-size:14px;outline:none;background:var(--surface2);color:var(--text);transition:.2s}
 .chat-input-row input:focus{border-color:var(--accent);background:#fff}
@@ -168,6 +173,8 @@ input,textarea,button{font-family:var(--font)}
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes ss-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@keyframes fadeInOverlay{from{opacity:0}to{opacity:1}}
+@keyframes slideUpSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .loader{text-align:center;padding:40px 20px}
 /* PULL TO REFRESH */
 .ptr-indicator{position:fixed;top:54px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none;box-shadow:0 2px 12px rgba(0,0,0,.08)}

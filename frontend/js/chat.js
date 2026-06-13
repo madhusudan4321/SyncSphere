@@ -20,6 +20,30 @@ function connectSocket() {
     // Refresh thread list for preview
     loadThreads();
   });
+
+  // Real-time: partner unsent a message
+  socket.on('message-unsent', ({ msgId }) => {
+    const row = document.getElementById('mb-' + msgId)?.closest('.msg-row');
+    const rWrap = document.getElementById('mr-' + msgId);
+    if (row) row.remove();
+    if (rWrap) rWrap.remove();
+  });
+
+  // Real-time: partner edited a message
+  socket.on('message-edited', ({ msgId, text }) => {
+    const bubble = document.getElementById('mb-' + msgId);
+    if (bubble) bubble.innerHTML = `${sanitize(text)}<span style="font-size:10px;opacity:.7;margin-left:4px">(edited)</span>`;
+  });
+
+  // Real-time: someone reacted to a message
+  socket.on('message-reacted', ({ msgId, reactions }) => {
+    const rWrap = document.getElementById('mr-' + msgId);
+    if (rWrap) {
+      rWrap.innerHTML = reactions.map(r =>
+        `<span class="msg-reaction" onclick="_reactToMsg('${msgId}','${r.emoji}')">${r.emoji}</span>`
+      ).join('');
+    }
+  });
 }
 
 // ── State ─────────────────────────────────────────────────────
@@ -171,13 +195,200 @@ function appendMessage(m, isMine) {
   const placeholder = mc.querySelector('p');
   if (placeholder) placeholder.remove();
 
-  const safeText = sanitize(m.text || m);
+  const msgId    = m._id || '';
+  const isUnsent = m.deletedForAll;
+  const safeText = isUnsent
+    ? `<span style="color:var(--muted);font-style:italic;font-size:13px">Message unsent</span>`
+    : sanitize(m.text || m);
+  const editedBadge = m.edited && !isUnsent
+    ? `<span style="font-size:10px;opacity:.7;margin-left:4px">(edited)</span>`
+    : '';
+
   const row = document.createElement('div');
   row.className = 'msg-row ' + (isMine ? 'mine' : 'other');
-  row.innerHTML = `<div class="msg-bubble">${safeText}</div><div class="msg-time">${timeAgo(m.createdAt || new Date())}</div>`;
-  mc.appendChild(row);
+  row.dataset.msgId  = msgId;
+  row.dataset.isMine = isMine ? '1' : '0';
+
+  // Render reactions
+  const reactions = (m.reactions || []);
+  const reactionHtml = reactions.length > 0
+    ? `<div class="msg-reactions">${reactions.map(r => `<span class="msg-reaction" onclick="_reactToMsg('${msgId}','${r.emoji}')">${r.emoji}</span>`).join('')}</div>`
+    : `<div class="msg-reactions" id="mr-${msgId}"></div>`;
+
+  row.innerHTML = `
+    <div class="msg-bubble" id="mb-${msgId}" onclick="_showMsgActions('${msgId}',${isMine},event)">
+      ${safeText}${editedBadge}
+    </div>
+    <div class="msg-time">${timeAgo(m.createdAt || new Date())}</div>
+  `;
+
+  // Add reactions below bubble (outside row so it spans)
+  if (reactions.length > 0) {
+    const rDiv = document.createElement('div');
+    rDiv.className = 'msg-reactions-wrap ' + (isMine ? 'mine' : 'other');
+    rDiv.id = 'mr-' + msgId;
+    rDiv.innerHTML = reactions.map(r =>
+      `<span class="msg-reaction" onclick="_reactToMsg('${msgId}','${r.emoji}')">${r.emoji}</span>`
+    ).join('');
+    mc.appendChild(row);
+    mc.appendChild(rDiv);
+  } else {
+    mc.appendChild(row);
+    // placeholder for reactions
+    const rDiv = document.createElement('div');
+    rDiv.className = 'msg-reactions-wrap ' + (isMine ? 'mine' : 'other');
+    rDiv.id = 'mr-' + msgId;
+    mc.appendChild(rDiv);
+  }
 
   if (atBottom) mc.scrollTop = mc.scrollHeight;
+}
+
+// ── Message action menu ───────────────────────────────────────
+const QUICK_EMOJIS = ['❤️','😂','😮','😢','😡','👍'];
+
+function _showMsgActions(msgId, isMine, e) {
+  e?.stopPropagation();
+  document.getElementById('msg-action-menu')?.remove();
+  if (!msgId) return;
+
+  const bubble = document.getElementById('mb-' + msgId);
+  if (!bubble) return;
+
+  const menu = document.createElement('div');
+  menu.id = 'msg-action-menu';
+
+  // Position near bubble
+  const rect = bubble.getBoundingClientRect();
+  const menuTop = rect.top - 130 < 10 ? rect.bottom + 8 : rect.top - 130;
+
+  menu.style.cssText = `
+    position:fixed;z-index:500;
+    top:${Math.max(10, menuTop)}px;
+    left:50%;transform:translateX(-50%);
+    width:calc(100% - 40px);max-width:340px;
+    background:var(--surface);border-radius:18px;
+    box-shadow:0 8px 40px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.1);
+    border:1px solid var(--border);
+    animation:slideUpSheet .18s cubic-bezier(.32,1,.26,1);
+    overflow:hidden;
+  `;
+
+  menu.innerHTML = `
+    <!-- Emoji reaction row -->
+    <div style="display:flex;justify-content:space-around;padding:14px 12px 10px;border-bottom:1px solid var(--border)">
+      ${QUICK_EMOJIS.map(em => `
+        <button onclick="_reactToMsg('${msgId}','${em}');document.getElementById('msg-action-menu')?.remove()" 
+          style="background:none;border:none;font-size:26px;cursor:pointer;padding:4px 6px;border-radius:10px;transition:.12s"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">${em}</button>
+      `).join('')}
+    </div>
+    <!-- Actions -->
+    <div style="padding:6px 0">
+      ${isMine ? `
+      <div onclick="_editMsg('${msgId}');document.getElementById('msg-action-menu')?.remove()" style="display:flex;align-items:center;gap:14px;padding:12px 20px;cursor:pointer" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+        <div style="width:36px;height:36px;border-radius:50%;background:#0095f615;display:flex;align-items:center;justify-content:center;font-size:17px">✏️</div>
+        <div>
+          <p style="font-size:14px;font-weight:600">Edit Message</p>
+          <p style="font-size:11px;color:var(--muted)">Change your message text</p>
+        </div>
+      </div>
+      <div onclick="_confirmUnsend('${msgId}')" style="display:flex;align-items:center;gap:14px;padding:12px 20px;cursor:pointer;border-top:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+        <div style="width:36px;height:36px;border-radius:50%;background:#ed495615;display:flex;align-items:center;justify-content:center;font-size:17px">🗑️</div>
+        <div>
+          <p style="font-size:14px;font-weight:600;color:#ed4956">Unsend</p>
+          <p style="font-size:11px;color:var(--muted)">Remove for everyone</p>
+        </div>
+      </div>` : ''}
+    </div>
+  `;
+
+  // Close on outside click
+  const closeHandler = (ev) => {
+    if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('click', closeHandler); }
+  };
+  setTimeout(() => document.addEventListener('click', closeHandler), 50);
+  document.getElementById('chat-messages')?.appendChild(menu);
+}
+
+function _confirmUnsend(msgId) {
+  document.getElementById('msg-action-menu')?.remove();
+  document.getElementById('unsend-confirm-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'unsend-confirm-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;display:flex;align-items:flex-end;justify-content:center;animation:fadeInOverlay .18s ease';
+  modal.innerHTML = `
+    <div style="background:var(--surface);width:100%;max-width:480px;border-radius:24px 24px 0 0;overflow:hidden;padding-bottom:env(safe-area-inset-bottom);animation:slideUpSheet .22s cubic-bezier(.32,1,.26,1)">
+      <div style="padding:8px 0 4px;display:flex;justify-content:center"><div style="width:36px;height:4px;background:var(--border);border-radius:4px"></div></div>
+      <div style="padding:18px 24px 8px;text-align:center">
+        <div style="width:52px;height:52px;border-radius:50%;background:#ed495615;border:2px solid #ed495630;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px">🗑️</div>
+        <h3 style="font-size:17px;font-weight:700;margin-bottom:6px">Unsend Message?</h3>
+        <p style="font-size:13px;color:var(--muted)">This message will be removed for everyone. This cannot be undone.</p>
+      </div>
+      <div style="padding:14px 24px 18px;display:flex;flex-direction:column;gap:10px">
+        <button onclick="_doUnsend('${msgId}')" style="width:100%;padding:13px;background:linear-gradient(135deg,#ff6b6b,#ed4956);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px #ed495640">Unsend for Everyone</button>
+        <button onclick="document.getElementById('unsend-confirm-modal').remove()" style="width:100%;padding:12px;background:var(--surface2);color:var(--text);border:none;border-radius:14px;font-size:15px;font-weight:600;cursor:pointer">Cancel</button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+async function _doUnsend(msgId) {
+  document.getElementById('unsend-confirm-modal')?.remove();
+  try {
+    await api.request('DELETE', `/messages/${msgId}`, null);
+    // Remove both the row and its reaction wrap from DOM
+    document.getElementById('mb-' + msgId)?.closest('.msg-row')?.remove();
+    document.getElementById('mr-' + msgId)?.remove();
+    showToast('Message unsent');
+    // Emit socket event so partner also sees it removed
+    if (socket?.connected) socket.emit('message-unsent', { msgId, to: chatPartnerId });
+    loadThreads();
+  } catch (err) { showToast('❌ ' + err.message); }
+}
+
+function _editMsg(msgId) {
+  const bubble = document.getElementById('mb-' + msgId);
+  if (!bubble) return;
+  const currentText = bubble.innerText.replace('(edited)', '').trim();
+  bubble.innerHTML = `
+    <div style="display:flex;gap:6px;align-items:center">
+      <input id="edit-msg-input-${msgId}" value="${currentText.replace(/"/g,'&quot;')}" 
+        style="flex:1;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);border-radius:8px;padding:5px 8px;font-size:14px;color:inherit;outline:none;font-family:var(--font)"
+        onkeydown="if(event.key==='Enter')_saveEditMsg('${msgId}');if(event.key==='Escape')loadMessages()">
+      <button onclick="_saveEditMsg('${msgId}')" style="background:rgba(255,255,255,.25);border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;color:inherit">Save</button>
+      <button onclick="loadMessages()" style="background:none;border:none;font-size:18px;cursor:pointer;color:inherit;opacity:.7">✕</button>
+    </div>`;
+  setTimeout(() => document.getElementById('edit-msg-input-' + msgId)?.focus(), 50);
+}
+
+async function _saveEditMsg(msgId) {
+  const input = document.getElementById('edit-msg-input-' + msgId);
+  if (!input) return;
+  const newText = input.value.trim();
+  if (!newText) return;
+  try {
+    const updated = await api.request('PUT', `/messages/${msgId}`, { text: newText });
+    // Update bubble in place
+    const bubble = document.getElementById('mb-' + msgId);
+    if (bubble) bubble.innerHTML = `${sanitize(updated.text)}<span style="font-size:10px;opacity:.7;margin-left:4px">(edited)</span>`;
+    // Emit socket event
+    if (socket?.connected) socket.emit('message-edited', { msgId, to: chatPartnerId, text: updated.text });
+  } catch (err) { showToast('❌ ' + err.message); loadMessages(); }
+}
+
+async function _reactToMsg(msgId, emoji) {
+  try {
+    const { reactions } = await api.post(`/messages/${msgId}/react`, { emoji });
+    const rWrap = document.getElementById('mr-' + msgId);
+    if (rWrap) {
+      rWrap.innerHTML = reactions.map(r =>
+        `<span class="msg-reaction" onclick="_reactToMsg('${msgId}','${r.emoji}')">${r.emoji}</span>`
+      ).join('');
+    }
+    if (socket?.connected) socket.emit('message-reacted', { msgId, to: chatPartnerId, reactions });
+  } catch (err) { showToast('❌ ' + err.message); }
 }
 
 async function sendMessage() {

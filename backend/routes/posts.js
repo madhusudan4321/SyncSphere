@@ -14,7 +14,7 @@ const storage = new CloudinaryStorage({
   params: {
     folder: 'syncsphere/posts',
     allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    transformation: [{ width: 1080, crop: 'limit', quality: 'auto' }],
+    transformation: [{ width: 1080, crop: 'scale', quality: 'auto:best' }],
   },
 });
 const upload = multer({ storage });

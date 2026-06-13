@@ -250,25 +250,42 @@ function _toggleMsgDots(msgId) {
   }
 }
 
-// ── Three-dot dropdown (Edit / Unsend) ────────────────────────
+// ── Three-dot menu (Emoji row + Edit/Unsend for sender) ──────
 function _showMsgMenu(msgId, isMine, e) {
   e?.stopPropagation();
   document.getElementById('msg-dots-menu')?.remove();
-  if (!isMine) { _toggleMsgDots(msgId); return; }
+
   const btn = document.getElementById('dots-'+msgId);
   if (!btn) return;
   const rect = btn.getBoundingClientRect();
+
+  // Position: for mine (right side) open leftward; for other (left side) open rightward
   const menu = document.createElement('div');
   menu.id = 'msg-dots-menu';
-  menu.style.cssText = `position:fixed;z-index:600;top:${Math.max(60,rect.top-8)}px;right:${Math.max(10,window.innerWidth-rect.right-4)}px;background:var(--surface);border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.18);border:1px solid var(--border);overflow:hidden;min-width:150px;animation:fadeInOverlay .15s ease`;
+  const menuWidth = 220;
+  const leftPos = isMine
+    ? Math.max(10, rect.right - menuWidth - 8)
+    : Math.min(rect.left + 4, window.innerWidth - menuWidth - 10);
+  menu.style.cssText = `position:fixed;z-index:600;top:${Math.max(60, rect.top - 60)}px;left:${leftPos}px;background:var(--surface);border-radius:16px;box-shadow:0 6px 28px rgba(0,0,0,.2);border:1px solid var(--border);overflow:hidden;width:${menuWidth}px;animation:fadeInOverlay .15s ease`;
+
   const mkRow = (label, color, svgPath, fn) =>
-    `<div onclick="${fn}" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:14px;font-weight:500;color:${color}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'"><svg width="16" height="16" fill="none" stroke="${color}" stroke-width="2" viewBox="0 0 24 24">${svgPath}</svg>${label}</div>`;
-  menu.innerHTML =
-    mkRow('Edit','var(--text)','<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>',
-      `_editMsg('${msgId}');document.getElementById('msg-dots-menu')?.remove();document.getElementById('dots-${msgId}')?.classList.remove('visible')`) +
-    `<div style="height:1px;background:var(--border)"></div>` +
-    mkRow('Unsend','#ed4956','<polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>',
-      `_confirmUnsend('${msgId}')`);
+    `<div onclick="${fn}" style="display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;font-size:14px;font-weight:500;color:${color}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'"><svg width="15" height="15" fill="none" stroke="${color}" stroke-width="2" viewBox="0 0 24 24">${svgPath}</svg>${label}</div>`;
+
+  const dismissFn = `document.getElementById('msg-dots-menu')?.remove();document.getElementById('dots-${msgId}')?.classList.remove('visible');clearTimeout(document.getElementById('dots-${msgId}')?._hideTimer)`;
+
+  menu.innerHTML = `
+    <!-- Emoji reactions row -->
+    <div style="display:flex;justify-content:space-around;align-items:center;padding:10px 6px 8px;border-bottom:1px solid var(--border)">
+      ${QUICK_EMOJIS.map(em => `<button onclick="_reactToMsg('${msgId}','${em}');${dismissFn}" style="background:none;border:none;font-size:22px;cursor:pointer;padding:5px 4px;border-radius:50%;transition:transform .12s,background .12s;line-height:1" onmouseover="this.style.transform='scale(1.3)';this.style.background='var(--surface2)'" onmouseout="this.style.transform='scale(1)';this.style.background='none'">${em}</button>`).join('')}
+    </div>
+    ${isMine ? `
+    <div style="padding:4px 0">
+      ${mkRow('Edit','var(--text)','<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>',`_editMsg('${msgId}');${dismissFn}`)}
+      <div style="height:1px;background:var(--border)"></div>
+      ${mkRow('Unsend','#ed4956','<polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>',`_confirmUnsend('${msgId}')`)}
+    </div>` : ''}
+  `;
+
   const close = ev => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('click', close); } };
   setTimeout(() => document.addEventListener('click', close), 50);
   document.body.appendChild(menu);

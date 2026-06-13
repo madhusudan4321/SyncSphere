@@ -51,24 +51,23 @@ async function authLogin() {
       document.getElementById('chat-title').textContent = window.APP.user.username;
       switchScreen('app');
 
-      // If user refreshed while viewing someone else's profile, flag it in sessionStorage
-      // The actual restore happens at the bottom of profile.js once loadProfile() is defined
-      const hash = window.location.hash; // e.g. "#@ruhii"
+      const hash = window.location.hash;
       if (hash && hash.startsWith('#@')) {
         const profileUsername = hash.slice(2);
         sessionStorage.setItem('restoreProfile', profileUsername);
-        // Switch tab panels manually (don't call switchTab which loads own profile)
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById('tab-profile').classList.add('active');
         document.getElementById('nav-profile').classList.add('active');
       } else {
         sessionStorage.removeItem('restoreProfile');
-        switchTab('home');
+        switchTab('home'); // this calls loadFeed() — cache shown instantly if available
       }
 
-      setTimeout(() => autoRefreshOnLogin(), 500);
+      // Connect socket after a tiny delay to not block initial render
       setTimeout(() => connectSocket(), 300);
+      // Load chat threads and follow requests in background
+      setTimeout(() => { loadThreads(); checkFollowRequests(); }, 800);
     }
   })();
   function togglePassword(inputId, btn) {

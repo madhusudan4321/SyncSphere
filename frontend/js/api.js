@@ -71,6 +71,15 @@ function sanitize(str) {
 
 window.APP = { user: null };
 
+// ── Backend Keep-Alive (prevents Render free-tier cold starts) ──
+(function keepBackendWarm() {
+  const ping = () => fetch(BASE_URL.replace('/api','') + '/health', { method: 'GET' }).catch(() => {});
+  // Fire immediately on page load to wake up the server ASAP
+  ping();
+  // Ping every 9 minutes to stay warm (Render sleeps after 15 min)
+  setInterval(ping, 9 * 60 * 1000);
+})();
+
 // Returns the inner HTML for any avatar circle.
 // Shows the real photo (object-fit:cover) or falls back to styled initials.
 function avatarInner(user, fontSize) {

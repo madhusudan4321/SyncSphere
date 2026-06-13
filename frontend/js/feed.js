@@ -3,11 +3,46 @@ const EMOJIS = ['🌅','🌊','🏔️','🌸','🎨','🍣','🏙️','🌿','�
 const postDataMap = {};
 let feedPage = 1, feedLoading = false, feedHasMore = true;
 
+const FEED_CACHE_KEY = 'ss_feed_cache';
+
+function buildSkeletonCards(count = 3) {
+  return Array.from({ length: count }, () => `
+    <div class="post-card" style="pointer-events:none">
+      <div class="post-header">
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--surface2);animation:ss-pulse 1.4s ease-in-out infinite"></div>
+        <div style="width:110px;height:12px;border-radius:6px;background:var(--surface2);animation:ss-pulse 1.4s ease-in-out infinite;margin-left:2px"></div>
+      </div>
+      <div style="width:100%;aspect-ratio:1;background:var(--surface2);animation:ss-pulse 1.4s ease-in-out infinite"></div>
+      <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px">
+        <div style="width:80px;height:11px;border-radius:6px;background:var(--surface2);animation:ss-pulse 1.4s ease-in-out infinite"></div>
+        <div style="width:60%;height:11px;border-radius:6px;background:var(--surface2);animation:ss-pulse 1.4s ease-in-out infinite"></div>
+      </div>
+    </div>`).join('');
+}
+
 async function loadFeed(reset = true) {
   const fp = document.getElementById('feed-posts');
   if (reset) {
     feedPage = 1; feedHasMore = true; feedLoading = false;
-    fp.innerHTML = '<div class="loader"><div class="spinner"></div><p style="margin-top:12px;color:var(--muted);font-size:13px">Loading feed...</p></div>';
+
+    // ── Show cached posts immediately (stale-while-revalidate) ──
+    const cached = localStorage.getItem(FEED_CACHE_KEY);
+    if (cached) {
+      try {
+        const cachedPosts = JSON.parse(cached);
+        if (cachedPosts.length > 0) {
+          fp.innerHTML = '';
+          cachedPosts.forEach(p => { postDataMap[p._id] = p; fp.appendChild(buildPostCard(p)); });
+          renderStories();
+          // Silently fetch fresh data in background without spinner
+          _refreshFeedSilently();
+          return;
+        }
+      } catch(e) { /* corrupt cache, fall through to normal load */ }
+    }
+
+    // No cache — show skeleton while loading
+    fp.innerHTML = buildSkeletonCards(4);
     renderStories();
   }
   if (!feedHasMore || feedLoading) return;
@@ -19,8 +54,10 @@ async function loadFeed(reset = true) {
     if (reset) fp.innerHTML = '';
     if (feedPage === 1 && posts.length === 0) {
       fp.innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px;font-size:14px">No posts yet. Follow users or share a photo!</p>';
+      localStorage.removeItem(FEED_CACHE_KEY);
       feedLoading = false; return;
     }
+    if (feedPage === 1) localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(posts.slice(0, 10)));
     posts.forEach(p => { postDataMap[p._id] = p; fp.appendChild(buildPostCard(p)); });
     feedPage++; feedHasMore = hasMore;
     setupFeedSentinel();
@@ -28,6 +65,25 @@ async function loadFeed(reset = true) {
     if (reset) fp.innerHTML = `<p style="text-align:center;color:#ed4956;padding:30px;font-size:14px">${sanitize(err.message)}</p>`;
   }
   feedLoading = false;
+}
+
+async function _refreshFeedSilently() {
+  try {
+    const result = await api.get('/posts/feed?page=1&limit=10');
+    const posts = Array.isArray(result.posts) ? result.posts : [];
+    if (posts.length === 0) return;
+    // Update cache with fresh data
+    localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(posts));
+    // Only re-render if user is still on home tab
+    const homeTab = document.getElementById('tab-home');
+    if (!homeTab || !homeTab.classList.contains('active')) return;
+    const fp = document.getElementById('feed-posts');
+    fp.innerHTML = '';
+    feedPage = 1; feedHasMore = result.hasMore || false; feedLoading = false;
+    posts.forEach(p => { postDataMap[p._id] = p; fp.appendChild(buildPostCard(p)); });
+    feedPage = 2;
+    setupFeedSentinel();
+  } catch(e) { /* silent fail — user already sees cached data */ }
 }
 
 function setupFeedSentinel() {

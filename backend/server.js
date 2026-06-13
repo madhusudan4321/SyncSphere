@@ -41,6 +41,9 @@ const authLimiter = rateLimit({
   message: { message: 'Too many attempts. Please try again in 15 minutes.' }
 });
 
+// ── Health check (keep-alive ping from frontend) ──────────────
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
 // ── Routes ────────────────────────────────────────────────────
 app.use('/api/auth',     authLimiter, require('./routes/auth'));
 app.use('/api/forgot',   authLimiter, require('./routes/forgot'));

@@ -32,6 +32,11 @@ function switchTab(t) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('tab-' + t).classList.add('active');
   document.getElementById('nav-' + t).classList.add('active');
+
+  // Hide SyncSphere logo on chat; show on all other tabs
+  const topNav = document.getElementById('top-nav');
+  if (topNav) topNav.style.display = t === 'chat' ? 'none' : '';
+
   if (t === 'home')    { loadFeed(); loadStories(); }
   if (t === 'chat')    { closeChatWindow(); loadThreads(); }
   if (t === 'profile') loadProfile(window.APP.user.username, true);

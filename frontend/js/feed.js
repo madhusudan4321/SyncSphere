@@ -184,9 +184,13 @@ function openPostMenu(postId) {
   const p = postDataMap[postId]; if (!p) return;
   const isOwn = p.user._id === window.APP.user._id;
   const safeU = sanitize(p.user.username);
-  const item  = (icon, color, label, sub, fn) =>
+  const svgIcon = (paths, color) =>
+    `<div style="width:40px;height:40px;border-radius:50%;background:${color}15;display:flex;align-items:center;justify-content:center">
+      <svg width="18" height="18" fill="none" stroke="${color}" stroke-width="2" viewBox="0 0 24 24">${paths}</svg>
+    </div>`;
+  const item = (svgPaths, color, label, sub, fn) =>
     `<div onclick="${fn}" style="display:flex;align-items:center;gap:16px;padding:16px 24px;cursor:pointer;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-      <div style="width:40px;height:40px;border-radius:50%;background:${color}15;display:flex;align-items:center;justify-content:center;font-size:20px">${icon}</div>
+      ${svgIcon(svgPaths, color)}
       <div><p style="font-size:15px;font-weight:600">${label}</p><p style="font-size:12px;color:var(--muted)">${sub}</p></div>
     </div>`;
   const menu = document.createElement('div');
@@ -198,10 +202,10 @@ function openPostMenu(postId) {
         <div style="width:40px;height:4px;background:var(--border);border-radius:4px;margin:0 auto 12px"></div>
         <p style="font-size:14px;font-weight:700">@${safeU}'s post</p>
       </div>
-      ${isOwn ? item('✏️','#0095f6','Edit Caption','Change your post caption',`closePostMenuAnd(()=>openEditCaption('${postId}'))`) : ''}
-      ${isOwn ? item('👥','#22c55e','Tag People','Tag friends in this post',`closePostMenuAnd(()=>openTagPeople('${postId}'))`) : ''}
-      ${isOwn ? item('🗑️','#ed4956','Delete Post','This cannot be undone',`closePostMenuAnd(()=>deletePost('${postId}'))`) : ''}
-      ${item('📤','#8b5cf6','Share Post','Share with others',`closePostMenuAnd(()=>sharePost('${safeU}'))`)}
+      ${isOwn ? item('<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>','#0095f6','Edit Caption','Change your post caption',`closePostMenuAnd(()=>openEditCaption('${postId}'))`) : ''}
+      ${isOwn ? item('<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>','#22c55e','Tag People','Tag friends in this post',`closePostMenuAnd(()=>openTagPeople('${postId}'))`) : ''}
+      ${isOwn ? item('<polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>','#ed4956','Delete Post','This cannot be undone',`closePostMenuAnd(()=>deletePost('${postId}'))`) : ''}
+      ${item('<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/>','#8b5cf6','Share Post','Share with others',`closePostMenuAnd(()=>sharePost('${safeU}'))`)}
       <div onclick="document.getElementById('post-menu').remove()" style="display:flex;align-items:center;justify-content:center;padding:16px;cursor:pointer" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'"><p style="font-size:15px;font-weight:600;color:var(--muted)">Cancel</p></div>
     </div>`;
   menu.addEventListener('click', e => { if (e.target === menu) menu.remove(); });
@@ -228,7 +232,9 @@ function showDeletePostModal(postId) {
         <div style="width:36px;height:4px;background:var(--border);border-radius:4px"></div>
       </div>
       <div style="padding:20px 24px 8px;text-align:center">
-        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#ff6b6b22,#ed495622);border:2px solid #ed495630;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px">🗑️</div>
+        <div style="width:56px;height:56px;border-radius:50%;background:#ed495615;border:2px solid #ed495630;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+          <svg width="24" height="24" fill="none" stroke="#ed4956" stroke-width="2" viewBox="0 0 24 24"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        </div>
         <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Delete Post?</h3>
         <p style="font-size:13px;color:var(--muted);line-height:1.5">This will permanently remove your post and all its comments. This action cannot be undone.</p>
       </div>
@@ -251,7 +257,7 @@ async function _execDeletePost(postId) {
   try {
     await api.del(`/posts/${postId}`);
     document.getElementById('delete-post-modal')?.remove();
-    showToast('🗑️ Post deleted');
+    showToast('Post deleted');
     // Surgically remove the card from DOM instead of full reload
     delete postDataMap[postId];
     // Invalidate localStorage cache (filter out deleted post)
@@ -270,7 +276,7 @@ async function _execDeletePost(postId) {
     }
   } catch (err) {
     if (btn) { btn.disabled = false; btn.textContent = 'Delete Post'; }
-    showToast('❌ ' + err.message);
+    showToast(err.message);
   }
 }
 

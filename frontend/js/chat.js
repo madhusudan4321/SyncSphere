@@ -190,8 +190,6 @@ function appendMessage(m, isMine) {
   const mc = document.getElementById('chat-messages');
   if (!mc) return;
   const atBottom = mc.scrollHeight - mc.clientHeight <= mc.scrollTop + 30;
-
-  // Remove "say hi" placeholder
   const placeholder = mc.querySelector('p');
   if (placeholder) placeholder.remove();
 
@@ -201,114 +199,83 @@ function appendMessage(m, isMine) {
     ? `<span style="color:var(--muted);font-style:italic;font-size:13px">Message unsent</span>`
     : sanitize(m.text || m);
   const editedBadge = m.edited && !isUnsent
-    ? `<span style="font-size:10px;opacity:.7;margin-left:4px">(edited)</span>`
-    : '';
+    ? `<span style="font-size:10px;opacity:.6;margin-left:4px">· edited</span>` : '';
+  const dotsSvg = `<svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>`;
 
   const row = document.createElement('div');
   row.className = 'msg-row ' + (isMine ? 'mine' : 'other');
   row.dataset.msgId  = msgId;
   row.dataset.isMine = isMine ? '1' : '0';
-
-  // Render reactions
-  const reactions = (m.reactions || []);
-  const reactionHtml = reactions.length > 0
-    ? `<div class="msg-reactions">${reactions.map(r => `<span class="msg-reaction" onclick="_reactToMsg('${msgId}','${r.emoji}')">${r.emoji}</span>`).join('')}</div>`
-    : `<div class="msg-reactions" id="mr-${msgId}"></div>`;
-
   row.innerHTML = `
-    <div class="msg-bubble" id="mb-${msgId}" onclick="_showMsgActions('${msgId}',${isMine},event)">
-      ${safeText}${editedBadge}
-    </div>
-    <div class="msg-time">${timeAgo(m.createdAt || new Date())}</div>
-  `;
+    <button class="msg-dots-btn" id="dots-${msgId}" onclick="_showMsgMenu('${msgId}',${isMine},event)">${dotsSvg}</button>
+    <div class="msg-bubble-wrap">
+      <div class="msg-bubble" id="mb-${msgId}">${safeText}${editedBadge}</div>
+      <div class="msg-time">${timeAgo(m.createdAt || new Date())}</div>
+    </div>`;
 
-  // Add reactions below bubble (outside row so it spans)
-  if (reactions.length > 0) {
-    const rDiv = document.createElement('div');
-    rDiv.className = 'msg-reactions-wrap ' + (isMine ? 'mine' : 'other');
-    rDiv.id = 'mr-' + msgId;
-    rDiv.innerHTML = reactions.map(r =>
-      `<span class="msg-reaction" onclick="_reactToMsg('${msgId}','${r.emoji}')">${r.emoji}</span>`
-    ).join('');
-    mc.appendChild(row);
-    mc.appendChild(rDiv);
-  } else {
-    mc.appendChild(row);
-    // placeholder for reactions
-    const rDiv = document.createElement('div');
-    rDiv.className = 'msg-reactions-wrap ' + (isMine ? 'mine' : 'other');
-    rDiv.id = 'mr-' + msgId;
-    mc.appendChild(rDiv);
-  }
+  const bubbleEl = row.querySelector('.msg-bubble');
+  let holdTimer = null, longPressed = false;
+  bubbleEl.addEventListener('pointerdown', () => { longPressed = false; holdTimer = setTimeout(() => { longPressed = true; _showEmojiPicker(msgId, bubbleEl); }, 500); }, { passive: true });
+  bubbleEl.addEventListener('pointerup',     () => clearTimeout(holdTimer), { passive: true });
+  bubbleEl.addEventListener('pointercancel', () => clearTimeout(holdTimer), { passive: true });
+  bubbleEl.addEventListener('contextmenu',   e  => e.preventDefault());
+  bubbleEl.addEventListener('click', e => { e.stopPropagation(); if (longPressed) { longPressed = false; return; } _toggleMsgDots(msgId); });
 
+  const reactions = (m.reactions || []);
+  mc.appendChild(row);
+  const rDiv = document.createElement('div');
+  rDiv.className = 'msg-reactions-wrap ' + (isMine ? 'mine' : 'other');
+  rDiv.id = 'mr-' + msgId;
+  if (reactions.length > 0)
+    rDiv.innerHTML = reactions.map(r => `<span class="msg-reaction" onclick="_reactToMsg('${msgId}','${r.emoji}')">${r.emoji}</span>`).join('');
+  mc.appendChild(rDiv);
   if (atBottom) mc.scrollTop = mc.scrollHeight;
 }
 
-// ── Message action menu ───────────────────────────────────────
-const QUICK_EMOJIS = ['❤️','😂','😮','😢','😡','👍'];
+// ── Dots toggle ───────────────────────────────────────────────
+function _toggleMsgDots(msgId) {
+  document.querySelectorAll('.msg-dots-btn.visible').forEach(b => { if (b.id !== 'dots-'+msgId) b.classList.remove('visible'); });
+  document.getElementById('msg-dots-menu')?.remove();
+  document.getElementById('dots-'+msgId)?.classList.toggle('visible');
+}
 
-function _showMsgActions(msgId, isMine, e) {
+// ── Three-dot dropdown (Edit / Unsend) ────────────────────────
+function _showMsgMenu(msgId, isMine, e) {
   e?.stopPropagation();
-  document.getElementById('msg-action-menu')?.remove();
-  if (!msgId) return;
-
-  const bubble = document.getElementById('mb-' + msgId);
-  if (!bubble) return;
-
+  document.getElementById('msg-dots-menu')?.remove();
+  if (!isMine) { _toggleMsgDots(msgId); return; }
+  const btn = document.getElementById('dots-'+msgId);
+  if (!btn) return;
+  const rect = btn.getBoundingClientRect();
   const menu = document.createElement('div');
-  menu.id = 'msg-action-menu';
+  menu.id = 'msg-dots-menu';
+  menu.style.cssText = `position:fixed;z-index:600;top:${Math.max(60,rect.top-8)}px;right:${Math.max(10,window.innerWidth-rect.right-4)}px;background:var(--surface);border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.18);border:1px solid var(--border);overflow:hidden;min-width:150px;animation:fadeInOverlay .15s ease`;
+  const mkRow = (label, color, svgPath, fn) =>
+    `<div onclick="${fn}" style="display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:14px;font-weight:500;color:${color}" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'"><svg width="16" height="16" fill="none" stroke="${color}" stroke-width="2" viewBox="0 0 24 24">${svgPath}</svg>${label}</div>`;
+  menu.innerHTML =
+    mkRow('Edit','var(--text)','<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>',
+      `_editMsg('${msgId}');document.getElementById('msg-dots-menu')?.remove();document.getElementById('dots-${msgId}')?.classList.remove('visible')`) +
+    `<div style="height:1px;background:var(--border)"></div>` +
+    mkRow('Unsend','#ed4956','<polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>',
+      `_confirmUnsend('${msgId}')`);
+  const close = ev => { if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('click', close); } };
+  setTimeout(() => document.addEventListener('click', close), 50);
+  document.body.appendChild(menu);
+}
 
-  // Position near bubble
-  const rect = bubble.getBoundingClientRect();
-  const menuTop = rect.top - 130 < 10 ? rect.bottom + 8 : rect.top - 130;
-
-  menu.style.cssText = `
-    position:fixed;z-index:500;
-    top:${Math.max(10, menuTop)}px;
-    left:50%;transform:translateX(-50%);
-    width:calc(100% - 40px);max-width:340px;
-    background:var(--surface);border-radius:18px;
-    box-shadow:0 8px 40px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.1);
-    border:1px solid var(--border);
-    animation:slideUpSheet .18s cubic-bezier(.32,1,.26,1);
-    overflow:hidden;
-  `;
-
-  menu.innerHTML = `
-    <!-- Emoji reaction row -->
-    <div style="display:flex;justify-content:space-around;padding:14px 12px 10px;border-bottom:1px solid var(--border)">
-      ${QUICK_EMOJIS.map(em => `
-        <button onclick="_reactToMsg('${msgId}','${em}');document.getElementById('msg-action-menu')?.remove()" 
-          style="background:none;border:none;font-size:26px;cursor:pointer;padding:4px 6px;border-radius:10px;transition:.12s"
-          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">${em}</button>
-      `).join('')}
-    </div>
-    <!-- Actions -->
-    <div style="padding:6px 0">
-      ${isMine ? `
-      <div onclick="_editMsg('${msgId}');document.getElementById('msg-action-menu')?.remove()" style="display:flex;align-items:center;gap:14px;padding:12px 20px;cursor:pointer" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-        <div style="width:36px;height:36px;border-radius:50%;background:#0095f615;display:flex;align-items:center;justify-content:center;font-size:17px">✏️</div>
-        <div>
-          <p style="font-size:14px;font-weight:600">Edit Message</p>
-          <p style="font-size:11px;color:var(--muted)">Change your message text</p>
-        </div>
-      </div>
-      <div onclick="_confirmUnsend('${msgId}')" style="display:flex;align-items:center;gap:14px;padding:12px 20px;cursor:pointer;border-top:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-        <div style="width:36px;height:36px;border-radius:50%;background:#ed495615;display:flex;align-items:center;justify-content:center;font-size:17px">🗑️</div>
-        <div>
-          <p style="font-size:14px;font-weight:600;color:#ed4956">Unsend</p>
-          <p style="font-size:11px;color:var(--muted)">Remove for everyone</p>
-        </div>
-      </div>` : ''}
-    </div>
-  `;
-
-  // Close on outside click
-  const closeHandler = (ev) => {
-    if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('click', closeHandler); }
-  };
-  setTimeout(() => document.addEventListener('click', closeHandler), 50);
-  document.getElementById('chat-messages')?.appendChild(menu);
+// ── Long-press emoji picker ───────────────────────────────────
+function _showEmojiPicker(msgId, bubbleEl) {
+  document.getElementById('msg-emoji-picker')?.remove();
+  const rect = bubbleEl.getBoundingClientRect();
+  const picker = document.createElement('div');
+  picker.id = 'msg-emoji-picker';
+  picker.style.cssText = `position:fixed;z-index:650;top:${Math.max(10,rect.top-60)}px;left:50%;transform:translateX(-50%);background:var(--surface);border-radius:40px;box-shadow:0 4px 24px rgba(0,0,0,.2);border:1px solid var(--border);display:flex;gap:2px;padding:8px 10px;animation:fadeInOverlay .15s ease`;
+  picker.innerHTML = QUICK_EMOJIS.map(em =>
+    `<button onclick="_reactToMsg('${msgId}','${em}');document.getElementById('msg-emoji-picker')?.remove()" style="background:none;border:none;font-size:24px;cursor:pointer;padding:4px 5px;border-radius:50%;transition:.1s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">${em}</button>`
+  ).join('');
+  const close = ev => { if (!picker.contains(ev.target)) { picker.remove(); document.removeEventListener('click', close); } };
+  setTimeout(() => document.addEventListener('click', close), 50);
+  document.body.appendChild(picker);
 }
 
 function _confirmUnsend(msgId) {
@@ -321,7 +288,9 @@ function _confirmUnsend(msgId) {
     <div style="background:var(--surface);width:100%;max-width:480px;border-radius:24px 24px 0 0;overflow:hidden;padding-bottom:env(safe-area-inset-bottom);animation:slideUpSheet .22s cubic-bezier(.32,1,.26,1)">
       <div style="padding:8px 0 4px;display:flex;justify-content:center"><div style="width:36px;height:4px;background:var(--border);border-radius:4px"></div></div>
       <div style="padding:18px 24px 8px;text-align:center">
-        <div style="width:52px;height:52px;border-radius:50%;background:#ed495615;border:2px solid #ed495630;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px">🗑️</div>
+        <div style="width:52px;height:52px;border-radius:50%;background:#ed495615;border:2px solid #ed495630;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+          <svg width="22" height="22" fill="none" stroke="#ed4956" stroke-width="2" viewBox="0 0 24 24"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        </div>
         <h3 style="font-size:17px;font-weight:700;margin-bottom:6px">Unsend Message?</h3>
         <p style="font-size:13px;color:var(--muted)">This message will be removed for everyone. This cannot be undone.</p>
       </div>
@@ -375,7 +344,7 @@ async function _saveEditMsg(msgId) {
     if (bubble) bubble.innerHTML = `${sanitize(updated.text)}<span style="font-size:10px;opacity:.7;margin-left:4px">(edited)</span>`;
     // Emit socket event
     if (socket?.connected) socket.emit('message-edited', { msgId, to: chatPartnerId, text: updated.text });
-  } catch (err) { showToast('❌ ' + err.message); loadMessages(); }
+  } catch (err) { showToast(err.message); loadMessages(); }
 }
 
 async function _reactToMsg(msgId, emoji) {
@@ -491,15 +460,15 @@ function showChatUserMenu(userId, username) {
       </div>
       <div>
         <div onclick="chatMenuViewProfile('${username}')" style="display:flex;align-items:center;gap:16px;padding:16px 24px;cursor:pointer;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-          <div style="width:40px;height:40px;border-radius:50%;background:#e8f4fd;display:flex;align-items:center;justify-content:center">👤</div>
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
           <div><p style="font-size:15px;font-weight:600">View Profile</p></div>
         </div>
         <div onclick="chatMenuBlockUser('${userId}','${username}')" style="display:flex;align-items:center;gap:16px;padding:16px 24px;cursor:pointer;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-          <div style="width:40px;height:40px;border-radius:50%;background:#fdecea;display:flex;align-items:center;justify-content:center">🚫</div>
+          <div style="width:40px;height:40px;border-radius:50%;background:#fdecea;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" fill="none" stroke="#ed4956" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>
           <div><p style="font-size:15px;font-weight:600;color:#ed4956">Block User</p></div>
         </div>
         <div onclick="chatMenuReportUser('${userId}','${username}')" style="display:flex;align-items:center;gap:16px;padding:16px 24px;cursor:pointer;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-          <div style="width:40px;height:40px;border-radius:50%;background:#fff8e1;display:flex;align-items:center;justify-content:center">⚠️</div>
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff8e1;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" fill="none" stroke="#f09433" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
           <div><p style="font-size:15px;font-weight:600;color:#f09433">Report User</p></div>
         </div>
         <div onclick="document.getElementById('chat-user-menu').remove()" style="display:flex;align-items:center;justify-content:center;padding:16px;cursor:pointer" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">

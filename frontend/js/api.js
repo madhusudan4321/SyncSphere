@@ -32,7 +32,7 @@ function switchTab(t) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('tab-' + t).classList.add('active');
   document.getElementById('nav-' + t).classList.add('active');
-  if (t === 'home')    loadFeed();
+  if (t === 'home')    { loadFeed(); loadStories(); }
   if (t === 'chat')    { closeChatWindow(); loadThreads(); }
   if (t === 'profile') loadProfile(window.APP.user.username, true);
   if (t === 'search')  resetSearch();

@@ -33,7 +33,7 @@ async function loadFeed(reset = true) {
         if (cachedPosts.length > 0) {
           fp.innerHTML = '';
           cachedPosts.forEach(p => { postDataMap[p._id] = p; fp.appendChild(buildPostCard(p)); });
-          renderStories();
+          loadStories();
           // Silently fetch fresh data in background without spinner
           _refreshFeedSilently();
           return;
@@ -43,7 +43,7 @@ async function loadFeed(reset = true) {
 
     // No cache — show skeleton while loading
     fp.innerHTML = buildSkeletonCards(4);
-    renderStories();
+    loadStories();
   }
   if (!feedHasMore || feedLoading) return;
   feedLoading = true;
@@ -99,10 +99,7 @@ function setupFeedSentinel() {
   }, { threshold: 0.1 }).observe(sentinel);
 }
 
-function renderStories() {
-  const sr = document.getElementById('stories-row');
-  sr.innerHTML = `<div class="story-item"><div class="story-ring" style="background:var(--surface2);border:2px dashed var(--border)"><div class="story-inner">+</div></div><span class="story-name">Your story</span></div>`;
-}
+// renderStories() is handled by stories.js — loadStories() fetches real data from API
 
 function getImageUrl(image) {
   if (!image) return null;

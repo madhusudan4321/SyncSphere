@@ -52,12 +52,14 @@ function renderStoryBar(groups) {
   const sr = document.getElementById('stories-row');
   const myId = window.APP.user._id;
 
-  // Own story bubble — always first
-  const myGroup = groups.find(g => g.user._id === myId || g.user._id.toString() === myId);
+  // Find own group index in _storyFeed (backend puts it first if it exists)
+  const myGroupIdx = groups.findIndex(g => g.user._id === myId || g.user._id.toString() === myId);
+  const myGroup    = myGroupIdx >= 0 ? groups[myGroupIdx] : null;
   const hasMyStory = myGroup && myGroup.stories.length > 0;
 
+  // Own story bubble — view if has story, else upload
   let html = `
-    <div class="story-item" onclick="openStoryUpload()" id="story-add-btn" title="Add story">
+    <div class="story-item" onclick="${hasMyStory ? `openStoryViewer(${myGroupIdx})` : 'openStoryUpload()'}" id="story-add-btn">
       <div class="story-ring" style="background:${hasMyStory ? 'var(--grad)' : 'var(--surface2)'};${hasMyStory ? '' : 'border:2px dashed var(--border)'}">
         <div class="story-inner" style="background:var(--surface);position:relative;overflow:hidden">
           ${hasMyStory
@@ -68,14 +70,14 @@ function renderStoryBar(groups) {
       <span class="story-name" style="font-size:11px;color:var(--muted)">${hasMyStory ? 'Your story' : 'Add story'}</span>
     </div>`;
 
-  // Others' story bubbles
+  // Others' story bubbles — use real index in _storyFeed (not forEach index)
   groups.forEach((group, gIdx) => {
     if (group.user._id === myId || group.user._id.toString() === myId) return;
     const allViewed = group.stories.every(s => s.viewed);
     const su = sanitize(group.user.username);
     html += `
       <div class="story-item" onclick="openStoryViewer(${gIdx})">
-        <div class="story-ring" style="${allViewed ? 'background:var(--border)' : ''}">
+        <div class="story-ring" style="${allViewed ? 'background:var(--border);animation:none' : ''}">
           <div class="story-inner">${avatarInner(group.user, 18)}</div>
         </div>
         <span class="story-name">${su}</span>
@@ -84,6 +86,7 @@ function renderStoryBar(groups) {
 
   sr.innerHTML = html;
 }
+
 
 // ─── STORY VIEWER ────────────────────────────────────────────
 function openStoryViewer(groupIdx) {

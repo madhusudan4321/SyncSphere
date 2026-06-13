@@ -274,17 +274,51 @@ function _prevStory() {
 function closeStoryViewer() {
   cancelAnimationFrame(_barRAF);
   clearTimeout(_viewerTimer);
+  // Also remove the 3-dot menu if it's still open
+  document.getElementById('story-menu')?.remove();
   document.getElementById('story-viewer')?.remove();
 }
 
-// ─── SWIPE GESTURES ──────────────────────────────────────────
+// ─── SWIPE GESTURES + LONG PRESS PAUSE ──────────────────────
 function _initStorySwipe(el) {
   let startX = 0, startY = 0;
+  let holdTimer = null;
+  let isHolding = false;
+
+  // Long-press pause (500ms hold)
+  el.addEventListener('pointerdown', e => {
+    // Only trigger on the media area, not buttons/inputs
+    if (e.target.closest('button, input')) return;
+    startX = e.clientX;
+    startY = e.clientY;
+    isHolding = false;
+    holdTimer = setTimeout(() => {
+      isHolding = true;
+      _pauseStoryTimer();
+    }, 500);
+  }, { passive: true });
+
+  el.addEventListener('pointerup', e => {
+    clearTimeout(holdTimer);
+    if (isHolding) {
+      isHolding = false;
+      _resumeStoryTimer();
+    }
+  }, { passive: true });
+
+  el.addEventListener('pointercancel', () => {
+    clearTimeout(holdTimer);
+    if (isHolding) { isHolding = false; _resumeStoryTimer(); }
+  }, { passive: true });
+
+  // Swipe navigation (touch only)
   el.addEventListener('touchstart', e => {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, { passive: true });
+
   el.addEventListener('touchend', e => {
+    if (isHolding) return; // don't navigate on long-press release
     const dx = e.changedTouches[0].clientX - startX;
     const dy = e.changedTouches[0].clientY - startY;
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {

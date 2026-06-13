@@ -42,33 +42,34 @@ async function authLogin() {
     switchScreen('login');
   }
   
-  // Auto-login on page load
+  // Auto-login on page load — deferred so all scripts (feed.js, stories.js, chat.js…)
+  // are fully parsed before we call loadFeed(), loadStories(), connectSocket() etc.
   (function init() {
-    const token = localStorage.getItem('pic_token');
-    const user  = localStorage.getItem('pic_user');
-    if (token && user) {
-      window.APP.user = JSON.parse(user);
-      document.getElementById('chat-title').textContent = window.APP.user.username;
-      switchScreen('app');
+    setTimeout(() => {
+      const token = localStorage.getItem('pic_token');
+      const user  = localStorage.getItem('pic_user');
+      if (token && user) {
+        window.APP.user = JSON.parse(user);
+        document.getElementById('chat-title').textContent = window.APP.user.username;
+        switchScreen('app');
 
-      const hash = window.location.hash;
-      if (hash && hash.startsWith('#@')) {
-        const profileUsername = hash.slice(2);
-        sessionStorage.setItem('restoreProfile', profileUsername);
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById('tab-profile').classList.add('active');
-        document.getElementById('nav-profile').classList.add('active');
-      } else {
-        sessionStorage.removeItem('restoreProfile');
-        switchTab('home'); // this calls loadFeed() — cache shown instantly if available
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#@')) {
+          const profileUsername = hash.slice(2);
+          sessionStorage.setItem('restoreProfile', profileUsername);
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+          document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+          document.getElementById('tab-profile').classList.add('active');
+          document.getElementById('nav-profile').classList.add('active');
+        } else {
+          sessionStorage.removeItem('restoreProfile');
+          switchTab('home'); // loadFeed() + loadStories() are now guaranteed to exist
+        }
+
+        setTimeout(() => connectSocket(), 200);
+        setTimeout(() => { loadThreads(); checkFollowRequests(); }, 600);
       }
-
-      // Connect socket after a tiny delay to not block initial render
-      setTimeout(() => connectSocket(), 300);
-      // Load chat threads and follow requests in background
-      setTimeout(() => { loadThreads(); checkFollowRequests(); }, 800);
-    }
+    }, 0); // setTimeout(fn,0) fires after ALL scripts have executed synchronously
   })();
   function togglePassword(inputId, btn) {
     const input = document.getElementById(inputId);

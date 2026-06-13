@@ -3,7 +3,20 @@ const EMOJIS = ['🌅','🌊','🏔️','🌸','🎨','🍣','🏙️','🌿','�
 const postDataMap = {};
 let feedPage = 1, feedLoading = false, feedHasMore = true;
 
-const FEED_CACHE_KEY = 'ss_feed_cache';
+const FEED_CACHE_KEY     = 'ss_feed_cache';
+const FEED_CACHE_TS_KEY  = 'ss_feed_cache_ts';  // timestamp of when cache was written
+const FEED_CACHE_TTL_MS  = 5 * 60 * 1000;       // 5 minutes — after this, skip cache and load fresh
+
+// Helper: surgically remove a ghost post from DOM + localStorage
+function _removeStalePost(postId) {
+  delete postDataMap[postId];
+  const likeEl = document.getElementById('likes-' + postId);
+  likeEl?.closest('.post-card')?.remove();
+  try {
+    const cached = JSON.parse(localStorage.getItem(FEED_CACHE_KEY) || '[]');
+    localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(cached.filter(p => p._id !== postId)));
+  } catch(e) { localStorage.removeItem(FEED_CACHE_KEY); }
+}
 
 function buildSkeletonCards(count = 3) {
   return Array.from({ length: count }, () => `
@@ -26,7 +39,10 @@ async function loadFeed(reset = true) {
     feedPage = 1; feedHasMore = true; feedLoading = false;
 
     // ── Show cached posts immediately (stale-while-revalidate) ──
-    const cached = localStorage.getItem(FEED_CACHE_KEY);
+    // Skip cache if it's older than TTL — go straight to fresh load
+    const cacheTs = parseInt(localStorage.getItem(FEED_CACHE_TS_KEY) || '0');
+    const cacheAge = Date.now() - cacheTs;
+    const cached = cacheAge < FEED_CACHE_TTL_MS ? localStorage.getItem(FEED_CACHE_KEY) : null;
     if (cached) {
       try {
         const cachedPosts = JSON.parse(cached);
@@ -57,7 +73,10 @@ async function loadFeed(reset = true) {
       localStorage.removeItem(FEED_CACHE_KEY);
       feedLoading = false; return;
     }
-    if (feedPage === 1) localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(posts.slice(0, 10)));
+    if (feedPage === 1) {
+      localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(posts.slice(0, 10)));
+      localStorage.setItem(FEED_CACHE_TS_KEY, String(Date.now()));
+    }
     posts.forEach(p => { postDataMap[p._id] = p; fp.appendChild(buildPostCard(p)); });
     feedPage++; feedHasMore = hasMore;
     setupFeedSentinel();
@@ -72,9 +91,24 @@ async function _refreshFeedSilently() {
     const result = await api.get('/posts/feed?page=1&limit=10');
     const posts = Array.isArray(result.posts) ? result.posts : [];
     if (posts.length === 0) return;
-    // Update cache with fresh data
+
+    // Update cache with fresh data + timestamp
     localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(posts));
-    // Only re-render if user is still on home tab
+    localStorage.setItem(FEED_CACHE_TS_KEY, String(Date.now()));
+
+    // Build a Set of valid post IDs from server
+    const freshIds = new Set(posts.map(p => p._id));
+
+    // Always remove ghost cards from the DOM, even if user is on another tab
+    // This ensures deleted posts are gone when user returns to home
+    Object.keys(postDataMap).forEach(id => {
+      if (!freshIds.has(id)) {
+        // This post no longer exists on server — remove it silently
+        _removeStalePost(id);
+      }
+    });
+
+    // If user is on home tab, do a full clean re-render
     const homeTab = document.getElementById('tab-home');
     if (!homeTab || !homeTab.classList.contains('active')) return;
     const fp = document.getElementById('feed-posts');
@@ -341,7 +375,15 @@ async function toggleLike(postId, el) {
     svg.setAttribute('fill', liked ? '#ed4956' : 'none');
     svg.setAttribute('stroke', liked ? '#ed4956' : 'currentColor');
     document.getElementById('likes-' + postId).textContent = likesCount + ' like' + (likesCount !== 1 ? 's' : '');
-  } catch (err) { showToast(err.message); }
+  } catch (err) {
+    if (err.message === 'Post not found') {
+      // Ghost post — remove it from DOM and cache silently
+      _removeStalePost(postId);
+      showToast('This post is no longer available');
+    } else {
+      showToast(err.message);
+    }
+  }
 }
 
 function openUpload() { document.getElementById('upload-modal').classList.add('open'); }

@@ -369,8 +369,8 @@ async function sharePost(username) {
   const url = 'https://syncsphere-frontend.onrender.com';
   try {
     if (navigator.share) await navigator.share({ title:'SyncSphere', text:`Check out @${username} on SyncSphere!`, url });
-    else { await navigator.clipboard.writeText(`${url}`); showToast('📋 Link copied!'); }
-  } catch (err) { if (err.name !== 'AbortError') showToast('📋 Link copied!'); }
+    else { await navigator.clipboard.writeText(`${url}`); showToast('Link copied!'); }
+  } catch (err) { if (err.name !== 'AbortError') showToast('Link copied!'); }
 }
 
 async function toggleLike(postId, el) {

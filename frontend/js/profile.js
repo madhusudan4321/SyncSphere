@@ -60,7 +60,7 @@ async function loadProfile(username, isOwn) {
             ${isOwn ? `
               <button onclick="openEdit()">Edit Profile</button>
               <button onclick="togglePrivacy()" id="privacy-btn" style="background:${user.isPrivate ? '#262626' : 'var(--surface2)'};color:${user.isPrivate ? '#fff' : 'var(--text)'}">
-                ${user.isPrivate ? '🔒 Private' : '🌐 Public'}
+                ${user.isPrivate ? 'Private' : 'Public'}
               </button>
             ` : `
             ${iBlockedThem ? `
@@ -82,7 +82,7 @@ async function loadProfile(username, isOwn) {
           <div class="profile-grid">
             ${!isOwn && user.isPrivate && !isFollowing ? `
               <div class="empty-posts" style="grid-column:1/-1;padding:40px;text-align:center">
-                <p style="font-size:32px;margin-bottom:12px">🔒</p>
+                <div style="font-size:32px;margin-bottom:12px;display:flex;justify-content:center"><svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
                 <p style="font-size:15px;font-weight:600;margin-bottom:6px">This account is private</p>
                 <p style="font-size:13px;color:var(--muted)">Follow this account to see their photos</p>
               </div>
@@ -180,7 +180,7 @@ async function loadProfile(username, isOwn) {
       const { isPrivate } = await api.put('/users/privacy/toggle');
       window.APP.user.isPrivate = isPrivate;
       localStorage.setItem('pic_user', JSON.stringify(window.APP.user));
-      showToast(isPrivate ? '🔒 Account set to Private' : '🌐 Account set to Public');
+      showToast(isPrivate ? 'Account set to Private' : 'Account set to Public');
       loadProfile(window.APP.user.username, true);
     } catch (err) { showToast(err.message); }
   }
@@ -372,7 +372,7 @@ function openProfileMenu() {
     const privacyStatus = document.getElementById('privacy-menu-status');
     if (privacyStatus) {
       const u = window.APP.user;
-      privacyStatus.textContent = u.isPrivate ? '🔒 Currently Private — tap to make Public' : '🌐 Currently Public — tap to make Private';
+      privacyStatus.textContent = u.isPrivate ? 'Currently Private — tap to make Public' : 'Currently Public — tap to make Private';
     }
   }, 50);
 

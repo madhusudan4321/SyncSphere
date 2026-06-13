@@ -178,7 +178,7 @@ async function loadMessages() {
     const atBottom = mc.scrollHeight - mc.clientHeight <= mc.scrollTop + 30;
     mc.innerHTML = '';
     if (msgs.length === 0) {
-      mc.innerHTML = '<p style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Say hi! 👋</p>';
+      mc.innerHTML = '<p style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Say hi!</p>';
       return;
     }
     msgs.forEach(m => appendMessage(m, m.from._id === window.APP.user._id));
@@ -207,11 +207,11 @@ function appendMessage(m, isMine) {
   row.dataset.msgId  = msgId;
   row.dataset.isMine = isMine ? '1' : '0';
   row.innerHTML = `
-    <button class="msg-dots-btn" id="dots-${msgId}" onclick="_showMsgMenu('${msgId}',${isMine},event)">${dotsSvg}</button>
     <div class="msg-bubble-wrap">
       <div class="msg-bubble" id="mb-${msgId}">${safeText}${editedBadge}</div>
       <div class="msg-time">${timeAgo(m.createdAt || new Date())}</div>
-    </div>`;
+    </div>
+    <button class="msg-dots-btn" id="dots-${msgId}" onclick="_showMsgMenu('${msgId}',${isMine},event)">${dotsSvg}</button>`;
 
   const bubbleEl = row.querySelector('.msg-bubble');
   let holdTimer = null, longPressed = false;
@@ -234,9 +234,20 @@ function appendMessage(m, isMine) {
 
 // ── Dots toggle ───────────────────────────────────────────────
 function _toggleMsgDots(msgId) {
-  document.querySelectorAll('.msg-dots-btn.visible').forEach(b => { if (b.id !== 'dots-'+msgId) b.classList.remove('visible'); });
+  document.querySelectorAll('.msg-dots-btn.visible').forEach(b => {
+    if (b.id !== 'dots-'+msgId) { clearTimeout(b._hideTimer); b.classList.remove('visible'); }
+  });
   document.getElementById('msg-dots-menu')?.remove();
-  document.getElementById('dots-'+msgId)?.classList.toggle('visible');
+  const btn = document.getElementById('dots-'+msgId);
+  if (!btn) return;
+  btn.classList.toggle('visible');
+  clearTimeout(btn._hideTimer);
+  if (btn.classList.contains('visible')) {
+    btn._hideTimer = setTimeout(() => {
+      btn.classList.remove('visible');
+      document.getElementById('msg-dots-menu')?.remove();
+    }, 3000);
+  }
 }
 
 // ── Three-dot dropdown (Edit / Unsend) ────────────────────────
@@ -314,7 +325,7 @@ async function _doUnsend(msgId) {
     // Emit socket event so partner also sees it removed
     if (socket?.connected) socket.emit('message-unsent', { msgId, to: chatPartnerId });
     loadThreads();
-  } catch (err) { showToast('❌ ' + err.message); }
+  } catch (err) { showToast(err.message); }
 }
 
 function _editMsg(msgId) {
@@ -403,7 +414,6 @@ async function sendRequest(userId, text) {
     document.getElementById('chat-msg-input').value = '';
     document.getElementById('chat-messages').innerHTML = `
       <div style="text-align:center;padding:30px 20px">
-        <p style="font-size:32px;margin-bottom:12px">📨</p>
         <p style="font-size:14px;font-weight:600;margin-bottom:6px">Request Sent!</p>
         <p style="font-size:13px;color:var(--muted)">You can chat once they accept it.</p>
       </div>`;

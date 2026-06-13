@@ -23,16 +23,16 @@ document.getElementById('story-upload-input').addEventListener('change', async f
     return;
   }
 
-  showToast('📤 Uploading story...');
+  showToast('Uploading story...');
   const form = new FormData();
   form.append('media', file);
 
   try {
     const story = await api.request('POST', '/stories', form, true);
-    showToast('✅ Story posted!');
+    showToast('Story posted!');
     await loadStories(); // refresh story bar
   } catch (err) {
-    showToast('❌ ' + err.message);
+    showToast(err.message);
   }
 });
 
@@ -359,7 +359,7 @@ async function _submitStoryReply(storyId) {
   input.disabled = true;
   try {
     await api.post(`/stories/${storyId}/reply`, { text });
-    showToast('💬 Reply sent!');
+    showToast('Reply sent!');
     _resumeStoryTimer();
   } catch (err) {
     showToast(err.message);
@@ -389,7 +389,9 @@ function _storyMenu(storyId) {
     <div onclick="_confirmDeleteStory('${storyId}')"
       style="display:flex;align-items:center;gap:16px;padding:16px 24px;cursor:pointer;border-bottom:1px solid #333"
       onmouseover="this.style.background='#2a1a1a'" onmouseout="this.style.background='transparent'">
-      <div style="width:40px;height:40px;border-radius:50%;background:#ed495620;display:flex;align-items:center;justify-content:center;font-size:20px">🗑️</div>
+      <div style="width:40px;height:40px;border-radius:50%;background:#ed495620;display:flex;align-items:center;justify-content:center">
+        <svg width="16" height="16" fill="none" stroke="#ed4956" stroke-width="2" viewBox="0 0 24 24"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+      </div>
       <div>
         <p style="color:#ed4956;font-size:15px;font-weight:700">Delete Story</p>
         <p style="color:#888;font-size:12px">This cannot be undone</p>

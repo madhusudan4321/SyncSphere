@@ -138,7 +138,7 @@ function setupFeedSentinel() {
 function getImageUrl(image) {
   if (!image) return null;
   if (image.startsWith('http')) return image;
-  return `https://syncsphere-api.onrender.com${image}`;
+  return image;
 }
 
 function buildPostCard(p) {

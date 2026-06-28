@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: backend-deployment
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: backend
+
+  template:
+    metadata:
+      labels:
+        app: backend
+
+    spec:
+      containers:
+      - name: backend
+
+        image: madhusudanyadav2792/syncsphere-backend:1.1
+
+        ports:
+        - containerPort: 5000
+
+        env:
+        - name: PORT
+          value: "5000"
+
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: MONGO_URI
+
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: JWT_SECRET
+
+        - name: CLOUDINARY_CLOUD_NAME
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: CLOUDINARY_CLOUD_NAME
+
+        - name: CLOUDINARY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: CLOUDINARY_API_KEY
+
+        - name: CLOUDINARY_API_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: CLOUDINARY_API_SECRET
+
+        - name: EMAIL_USER
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: EMAIL_USER
+
+        - name: EMAIL_PASS
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: EMAIL_PASS

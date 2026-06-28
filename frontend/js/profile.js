@@ -605,7 +605,7 @@ async function applyCrop() {
       const form  = new FormData();
       form.append('avatar', blob, 'avatar.jpg');
       const token = localStorage.getItem('pic_token');
-      const res   = await fetch('https://syncsphere-api.onrender.com/api/users/avatar', {
+      const res   = await fetch('/api/users/avatar', {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` },
         body: form

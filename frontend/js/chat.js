@@ -1,5 +1,6 @@
 // ── Socket.io connection ──────────────────────────────────────
-const SOCKET_URL = 'https://syncsphere-api.onrender.com';
+//const SOCKET_URL = 'https://syncsphere-api.onrender.com';
+const SOCKET_URL = window.location.origin;
 let socket = null;
 
 function connectSocket() {

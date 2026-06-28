@@ -1,4 +1,5 @@
-const BASE_URL = 'https://syncsphere-api.onrender.com/api';
+// const BASE_URL = 'https://syncsphere-api.onrender.com/api';
+const BASE_URL = "/api";
 
 const getToken = () => localStorage.getItem('pic_token');
 
@@ -94,4 +95,4 @@ function avatarInner(user, fontSize) {
   const name = (user && (user.name || user.username)) || '';
   const fs = fontSize ? ` style="font-size:${fontSize}px"` : '';
   return `<div class="av-inner"${fs}>${getInitials(name)}</div>`;
-}
+}

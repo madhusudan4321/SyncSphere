@@ -24,11 +24,16 @@ const allowedOrigins = [
 ];
 
 // ── CORS ──────────────────────────────────────────────────────
+// app.use(cors({
+//   origin: (origin, cb) => {
+//     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+//     cb(new Error('Not allowed by CORS'));
+//   },
+//   credentials: true
+// }));
+
 app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error('Not allowed by CORS'));
-  },
+  origin: true,
   credentials: true
 }));
 app.use(express.json());

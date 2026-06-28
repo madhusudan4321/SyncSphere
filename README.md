@@ -5,6 +5,12 @@ A full-stack social media application inspired by Instagram, built with vanilla 
 ## 🌍 Live Demo
 [![Live Demo](https://img.shields.io/badge/Live-Demo-blue)](https://syncsphere-frontend.onrender.com/)
 
+## Steps To Run k8s deployed web app:
+- Turn on docker
+- run command: minikube start
+- Then run this one : minikube service ingress-nginx-controller -n ingress-nginx --url
+- you will get the url right now that url is without hostname..!
+
 ---
 
 ## 📱 Features

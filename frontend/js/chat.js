@@ -124,6 +124,7 @@ function renderTickInner(status) {
 }
 
 function updateTickStatus(msgId, newStatus) {
+  // Tick lives inside the mt- time-row element
   const el = document.getElementById('tick-' + msgId);
   if (!el) return;
   const order = { sent: 0, delivered: 1, seen: 2 };
@@ -466,10 +467,10 @@ function appendMessage(m, isMine) {
     ? `<span class="msg-tick tick-${tickStatus}" id="tick-${msgId}" data-status="${tickStatus}">${renderTickInner(tickStatus)}</span>`
     : '';
 
+  // Bubble row — NO timestamp inside anymore
   row.innerHTML = `
     <div class="msg-bubble-wrap">
       <div class="msg-bubble" id="mb-${msgId}">${safeText}${editedBadge}</div>
-      <div class="msg-time">${timeAgo(m.createdAt || new Date())}${tickHtml}</div>
     </div>
     <button class="msg-dots-btn" id="dots-${msgId}" onclick="_showMsgMenu('${msgId}',${isMine},event)">${dotsSvg}</button>`;
 
@@ -483,14 +484,25 @@ function appendMessage(m, isMine) {
 
   const reactions = (m.reactions || []);
   mc.appendChild(row);
+
+  // Reactions wrap (overlaps bubble bottom via CSS margin-top: -12px)
   const rDiv = document.createElement('div');
   rDiv.className = 'msg-reactions-wrap ' + (isMine ? 'mine' : 'other');
   rDiv.id = 'mr-' + msgId;
   if (reactions.length > 0)
     rDiv.innerHTML = reactions.map(r => `<span class="msg-reaction" onclick="_reactToMsg('${msgId}','${r.emoji}')">${r.emoji}</span>`).join('');
   mc.appendChild(rDiv);
+
+  // Timestamp always LAST — below reactions
+  const timeDiv = document.createElement('div');
+  timeDiv.className = 'msg-time-row ' + (isMine ? 'mine' : 'other');
+  timeDiv.id = 'mt-' + msgId;
+  timeDiv.innerHTML = timeAgo(m.createdAt || new Date()) + tickHtml;
+  mc.appendChild(timeDiv);
+
   if (atBottom) mc.scrollTop = mc.scrollHeight;
 }
+
 
 // ── Dots toggle ───────────────────────────────────────────────
 function _toggleMsgDots(msgId) {

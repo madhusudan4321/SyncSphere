@@ -110,10 +110,24 @@ router.get('/:userId', protect, async (req, res) => {
         { from: req.params.userId, to: req.user.id }
       ],
       deletedForAll: { $ne: true }
-    }).sort({ createdAt: 1 }).populate('from to', 'username name');
+    }).sort({ createdAt: 1 }).populate('from to', 'username name avatar');
     res.json(messages);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
+
+// PUT /api/messages/seen/:partnerId — mark all messages from partner as seen
+// Called when receiver opens the chat window (REST fallback alongside socket)
+router.put('/seen/:partnerId', protect, async (req, res) => {
+  try {
+    const now = new Date();
+    const result = await Message.updateMany(
+      { from: req.params.partnerId, to: req.user.id, status: { $in: ['sent', 'delivered'] } },
+      { $set: { status: 'seen', seenAt: now } }
+    );
+    res.json({ updated: result.modifiedCount });
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 
 // POST /api/messages — send message (only if following or accepted request)
 router.post('/', protect, async (req, res) => {

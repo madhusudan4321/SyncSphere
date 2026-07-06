@@ -2,47 +2,253 @@
 const SOCKET_URL = 'https://syncsphere-api.onrender.com';
 let socket = null;
 
+// ── Presence Manager ─────────────────────────────────────────
+const PresenceManager = {
+  onlineUsers: new Set(),
+  lastSeenMap: new Map(),
+  _clockInterval: null,
+
+  setOnline(userId) {
+    this.onlineUsers.add(String(userId));
+    this.lastSeenMap.delete(String(userId));
+    this.updateChatHeader();
+  },
+
+  setOffline(userId, lastSeen) {
+    this.onlineUsers.delete(String(userId));
+    if (lastSeen) this.lastSeenMap.set(String(userId), new Date(lastSeen));
+    this.updateChatHeader();
+  },
+
+  formatLastSeen(userId) {
+    const uid = String(userId);
+    if (this.onlineUsers.has(uid)) return 'Online';
+    const ts = this.lastSeenMap.get(uid);
+    if (!ts) return '';
+    const diff = Date.now() - ts;
+    const s = Math.floor(diff / 1000);
+    const m = Math.floor(s / 60);
+    const h = Math.floor(m / 60);
+    const d = Math.floor(h / 24);
+    if (s < 60)  return 'Last seen just now';
+    if (m < 60)  return `Last seen ${m} minute${m > 1 ? 's' : ''} ago`;
+    if (h < 24)  return `Last seen ${h} hour${h > 1 ? 's' : ''} ago`;
+    if (d === 1) return 'Last seen yesterday';
+    return `Last seen on ${ts.toLocaleDateString('en-US',{month:'short',day:'numeric'})} at ${ts.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`;
+  },
+
+  updateChatHeader() {
+    if (!chatPartnerId) return;
+    const statusEl = document.getElementById('cw-status');
+    if (!statusEl) return;
+    const text = this.formatLastSeen(chatPartnerId);
+    statusEl.textContent = text;
+    statusEl.className = 'cw-status' + (this.onlineUsers.has(String(chatPartnerId)) ? ' cw-online' : '');
+  },
+
+  startClock() { this._clockInterval = setInterval(() => this.updateChatHeader(), 30000); },
+  stopClock()  { clearInterval(this._clockInterval); }
+};
+
+// ── Typing Manager ────────────────────────────────────────────
+const TypingManager = {
+  _typing: false,
+  _timer: null,
+
+  onKeyPress() {
+    if (!chatPartnerId || !socket?.connected) return;
+    if (!this._typing) {
+      this._typing = true;
+      socket.emit('typing:start', { to: chatPartnerId });
+    }
+    clearTimeout(this._timer);
+    this._timer = setTimeout(() => this.stop(), 2000);
+  },
+
+  stop() {
+    if (!this._typing) return;
+    this._typing = false;
+    clearTimeout(this._timer);
+    if (chatPartnerId && socket?.connected) socket.emit('typing:stop', { to: chatPartnerId });
+  },
+
+  reset() { clearTimeout(this._timer); this._typing = false; }
+};
+
+// ── Recording Manager ─────────────────────────────────────────
+const RecordingManager = {
+  start() { if (chatPartnerId && socket?.connected) socket.emit('recording:start', { to: chatPartnerId }); },
+  stop()  { if (chatPartnerId && socket?.connected) socket.emit('recording:stop',  { to: chatPartnerId }); }
+};
+
+// ── Offline Message Queue ─────────────────────────────────────
+const MessageQueue = {
+  KEY: 'ss_msg_queue_v2',
+  _get()     { try { return JSON.parse(localStorage.getItem(this.KEY) || '[]'); } catch { return []; } },
+  _save(q)   { localStorage.setItem(this.KEY, JSON.stringify(q)); },
+  enqueue(i) { const q = this._get(); if (!q.find(x => x.tempId === i.tempId)) { q.push(i); this._save(q); } },
+  dequeue(t) { this._save(this._get().filter(x => x.tempId !== t)); },
+  getAll()   { return this._get(); },
+
+  async flush() {
+    const q = this._get();
+    if (!q.length || !socket?.connected) return;
+    for (const item of q) {
+      try {
+        const msg = await api.post('/messages', { to: item.to, text: item.text });
+        // Swap temp bubble → real bubble
+        const tempRow = document.getElementById('row-temp-' + item.tempId);
+        if (tempRow) {
+          const bub = tempRow.querySelector('.msg-bubble');
+          const tick = tempRow.querySelector('.msg-tick');
+          if (bub)  bub.id  = 'mb-' + msg._id;
+          if (tick) { tick.id = 'tick-' + msg._id; tick.dataset.status = msg.status || 'sent'; tick.innerHTML = renderTickInner(msg.status || 'sent'); }
+          tempRow.id = 'row-real-' + msg._id;
+          tempRow.dataset.msgId = msg._id;
+        }
+        if (socket?.connected) socket.emit('message-sent', { to: item.to, message: msg });
+        this.dequeue(item.tempId);
+      } catch { break; }
+    }
+  }
+};
+
+// ── Tick Renderer ─────────────────────────────────────────────
+function renderTickInner(status) {
+  if (status === 'seen') {
+    return `<svg width="16" height="10" viewBox="0 0 16 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5L4.5 8.5L10.5 1" stroke="#53BDEB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 5L9 8.5L15 1" stroke="#53BDEB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  } else if (status === 'delivered') {
+    return `<svg width="16" height="10" viewBox="0 0 16 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5L4.5 8.5L10.5 1" stroke="#8A8A8A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 5L9 8.5L15 1" stroke="#8A8A8A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+  return `<svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 5L4 8.5L9 1" stroke="#8A8A8A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function updateTickStatus(msgId, newStatus) {
+  const el = document.getElementById('tick-' + msgId);
+  if (!el) return;
+  const order = { sent: 0, delivered: 1, seen: 2 };
+  if ((order[newStatus] ?? 0) <= (order[el.dataset.status] ?? 0)) return; // never downgrade
+  el.dataset.status = newStatus;
+  el.className = `msg-tick tick-${newStatus}`;
+  el.innerHTML = renderTickInner(newStatus);
+}
+
+// ── Activity Indicator (typing / recording) ───────────────────
+function showTypingIndicator() {
+  hideActivityIndicator();
+  const mc = document.getElementById('chat-messages'); if (!mc) return;
+  const el = document.createElement('div');
+  el.id = 'chat-activity-indicator';
+  el.className = 'activity-row';
+  el.innerHTML = `<div class="typing-bubble"><span class="t-dot"></span><span class="t-dot"></span><span class="t-dot"></span></div>`;
+  mc.appendChild(el);
+  mc.scrollTop = mc.scrollHeight;
+}
+
+function showRecordingIndicator() {
+  hideActivityIndicator();
+  const mc = document.getElementById('chat-messages'); if (!mc) return;
+  const el = document.createElement('div');
+  el.id = 'chat-activity-indicator';
+  el.className = 'activity-row';
+  el.innerHTML = `<div class="recording-bubble"><span class="rec-pulse"></span>Recording audio...</div>`;
+  mc.appendChild(el);
+  mc.scrollTop = mc.scrollHeight;
+}
+
+function hideActivityIndicator() {
+  document.getElementById('chat-activity-indicator')?.remove();
+}
+
 function connectSocket() {
   if (socket?.connected) return;
   socket = io(SOCKET_URL, {
-    auth: { token: localStorage.getItem('pic_token') },
-    transports: ['websocket', 'polling']
+    auth:                { token: localStorage.getItem('pic_token') },
+    transports:          ['websocket', 'polling'],
+    reconnection:        true,
+    reconnectionAttempts: 10,
+    reconnectionDelay:   1000,
+    reconnectionDelayMax: 5000,
   });
 
-  socket.on('connect', () => console.log('Socket connected'));
+  socket.on('connect', () => {
+    console.log('Socket connected');
+    // Flush any messages queued while offline
+    MessageQueue.flush();
+  });
+
   socket.on('connect_error', (err) => console.warn('Socket error:', err.message));
 
+  // ── Incoming message ──────────────────────────────────────
   socket.on('receive-message', (msg) => {
-    // If chat window is open with this user, show the message
     if (chatPartnerId && (msg.from?._id === chatPartnerId || msg.from === chatPartnerId)) {
+      hideActivityIndicator();
       appendMessage(msg, false);
+      // Mark as seen immediately since window is open
+      if (socket?.connected) socket.emit('messages:mark-seen', { partnerId: chatPartnerId });
     }
-    // Refresh thread list for preview
     loadThreads();
   });
 
-  // Real-time: partner unsent a message
-  socket.on('message-unsent', ({ msgId }) => {
-    const row = document.getElementById('mb-' + msgId)?.closest('.msg-row');
-    const rWrap = document.getElementById('mr-' + msgId);
-    if (row) row.remove();
-    if (rWrap) rWrap.remove();
+  // ── Presence ──────────────────────────────────────────────
+  socket.on('user:online', ({ userId }) => {
+    PresenceManager.setOnline(userId);
+    refreshThreadOnlineState(userId);
   });
 
-  // Real-time: partner edited a message
+  socket.on('user:offline', ({ userId, lastSeen }) => {
+    PresenceManager.setOffline(userId, lastSeen);
+    refreshThreadOnlineState(userId);
+  });
+
+  socket.on('presence:update', ({ userId, isOnline, lastSeen }) => {
+    if (isOnline) PresenceManager.setOnline(userId);
+    else          PresenceManager.setOffline(userId, lastSeen);
+  });
+
+  // ── Typing & Recording ────────────────────────────────────
+  socket.on('typing:start', ({ from }) => {
+    if (chatPartnerId && from === chatPartnerId) showTypingIndicator();
+  });
+
+  socket.on('typing:stop', ({ from }) => {
+    if (chatPartnerId && from === chatPartnerId) hideActivityIndicator();
+  });
+
+  socket.on('recording:start', ({ from }) => {
+    if (chatPartnerId && from === chatPartnerId) showRecordingIndicator();
+  });
+
+  socket.on('recording:stop', ({ from }) => {
+    if (chatPartnerId && from === chatPartnerId) hideActivityIndicator();
+  });
+
+  // ── Message status ticks ──────────────────────────────────
+  socket.on('message:delivered', ({ msgIds }) => {
+    (msgIds || []).forEach(id => updateTickStatus(id, 'delivered'));
+  });
+
+  socket.on('message:seen', ({ by }) => {
+    // All our messages to this user are now seen — update all visible ticks
+    document.querySelectorAll('.msg-tick').forEach(el => {
+      if (el.dataset.status !== 'seen') updateTickStatus(el.id.replace('tick-', ''), 'seen');
+    });
+  });
+
+  // ── Legacy events ─────────────────────────────────────────
+  socket.on('message-unsent', ({ msgId }) => {
+    document.getElementById('mb-' + msgId)?.closest('.msg-row')?.remove();
+    document.getElementById('mr-' + msgId)?.remove();
+  });
+
   socket.on('message-edited', ({ msgId, text }) => {
     const bubble = document.getElementById('mb-' + msgId);
     if (bubble) bubble.innerHTML = `${sanitize(text)}<span style="font-size:10px;opacity:.7;margin-left:4px">(edited)</span>`;
   });
 
-  // Real-time: someone reacted to a message
   socket.on('message-reacted', ({ msgId, reactions }) => {
     const rWrap = document.getElementById('mr-' + msgId);
-    if (rWrap) {
-      rWrap.innerHTML = reactions.map(r =>
-        `<span class="msg-reaction" onclick="_reactToMsg('${msgId}','${r.emoji}')">${r.emoji}</span>`
-      ).join('');
-    }
+    if (rWrap) rWrap.innerHTML = reactions.map(r => `<span class="msg-reaction" onclick="_reactToMsg('${msgId}','${r.emoji}')">${r.emoji}</span>`).join('');
   });
 }
 
@@ -145,17 +351,56 @@ async function declineRequest(requestId, e) {
 function openChatWindow(userId, username) {
   chatPartnerId   = userId;
   chatPartnerName = username;
-  document.getElementById('cw-name').textContent = username;
-  document.getElementById('cw-name').onclick = () => showChatUserMenu(userId, username);
-  document.getElementById('cw-name').style.cursor = 'pointer';
-  document.getElementById('cw-av').textContent = getInitials(username);
-  document.getElementById('cw-av').onclick = () => showChatUserMenu(userId, username);
-  document.getElementById('cw-av').style.cursor = 'pointer';
+
+  // Header: name
+  const nameEl = document.getElementById('cw-name');
+  nameEl.textContent = username;
+  nameEl.onclick = () => showChatUserMenu(userId, username);
+  nameEl.style.cursor = 'pointer';
+
+  // Header: avatar
+  const avEl = document.getElementById('cw-av');
+  avEl.textContent = getInitials(username);
+  avEl.onclick = () => showChatUserMenu(userId, username);
+  avEl.style.cursor = 'pointer';
+
+  // Header: inject status subtitle if not already present
+  let statusEl = document.getElementById('cw-status');
+  if (!statusEl) {
+    statusEl = document.createElement('div');
+    statusEl.id = 'cw-status';
+    statusEl.className = 'cw-status';
+    // Insert below cw-name inside the header
+    const header = document.querySelector('.chat-win-header');
+    if (header) {
+      // Wrap name + status in a column div
+      const nameWrap = document.createElement('div');
+      nameWrap.style.cssText = 'display:flex;flex-direction:column;flex:1;min-width:0';
+      nameEl.style.flex = '';
+      nameEl.parentNode?.insertBefore(nameWrap, nameEl);
+      nameWrap.appendChild(nameEl);
+      nameWrap.appendChild(statusEl);
+    }
+  }
+  statusEl.textContent = '';
+
   document.getElementById('chat-list-view').style.display = 'none';
   document.getElementById('chat-window').classList.add('open');
 
-  // Join socket room
-  if (socket?.connected) socket.emit('join-chat', { partnerId: userId });
+  // Socket: join room
+  if (socket?.connected) {
+    socket.emit('join-chat', { partnerId: userId });
+    // Request presence state for this partner
+    socket.emit('presence:request', { targetId: userId });
+    // Mark all their messages as seen
+    socket.emit('messages:mark-seen', { partnerId: userId });
+  }
+
+  // REST fallback: also mark seen via HTTP in case socket isn't ready
+  api.request('PUT', `/messages/seen/${userId}`, null).catch(() => {});
+
+  // Start clock that updates "last seen X ago" text every 30s
+  PresenceManager.startClock();
 
   loadMessages();
   setTimeout(() => document.getElementById('chat-msg-input').focus(), 100);
@@ -165,7 +410,13 @@ function closeChatWindow() {
   if (chatPartnerId && socket?.connected) {
     socket.emit('leave-chat', { partnerId: chatPartnerId });
   }
+  // Clean up real-time state
+  TypingManager.stop();
+  TypingManager.reset();
+  PresenceManager.stopClock();
+  hideActivityIndicator();
   chatPartnerId = null;
+  chatPartnerName = null;
   document.getElementById('chat-window').classList.remove('open');
   document.getElementById('chat-list-view').style.display = 'flex';
 }
@@ -206,10 +457,16 @@ function appendMessage(m, isMine) {
   row.className = 'msg-row ' + (isMine ? 'mine' : 'other');
   row.dataset.msgId  = msgId;
   row.dataset.isMine = isMine ? '1' : '0';
+  // Tick status for own messages (sent/delivered/seen)
+  const tickStatus = m.status || 'sent';
+  const tickHtml = isMine && msgId
+    ? `<span class="msg-tick tick-${tickStatus}" id="tick-${msgId}" data-status="${tickStatus}">${renderTickInner(tickStatus)}</span>`
+    : '';
+
   row.innerHTML = `
     <div class="msg-bubble-wrap">
       <div class="msg-bubble" id="mb-${msgId}">${safeText}${editedBadge}</div>
-      <div class="msg-time">${timeAgo(m.createdAt || new Date())}</div>
+      <div class="msg-time">${timeAgo(m.createdAt || new Date())}${tickHtml}</div>
     </div>
     <button class="msg-dots-btn" id="dots-${msgId}" onclick="_showMsgMenu('${msgId}',${isMine},event)">${dotsSvg}</button>`;
 
@@ -393,17 +650,52 @@ async function sendMessage() {
   const text  = input.value.trim();
   if (!text || !chatPartnerId) return;
   input.value = '';
+
+  // Stop typing indicator
+  TypingManager.stop();
+
+  // ── Optimistic UI: show message immediately with temp ID ──
+  const tempId  = 'tmp_' + Date.now();
+  const tempMsg = {
+    _id: tempId, from: { _id: window.APP.user._id }, to: chatPartnerId,
+    text, status: 'sent', createdAt: new Date(), reactions: []
+  };
+  appendMessage(tempMsg, true);
+  // Give the temp row a stable ID for queue lookup
+  const addedRow = document.querySelector(`[data-msg-id='${tempId}']`);
+  if (addedRow) addedRow.id = 'row-temp-' + tempId;
+
+  // Queue for offline resilience before async call
+  MessageQueue.enqueue({ tempId, to: chatPartnerId, text });
+
   try {
     const msg = await api.post('/messages', { to: chatPartnerId, text });
-    appendMessage(msg, true);
+    // Replace temp bubble with real one
+    const tempRow = document.getElementById('row-temp-' + tempId);
+    if (tempRow) {
+      const bub  = tempRow.querySelector('.msg-bubble');
+      const tick = tempRow.querySelector('.msg-tick');
+      const tBub = document.getElementById('mb-' + tempId);
+      if (bub  || tBub) (bub || tBub).id = 'mb-' + msg._id;
+      if (tick) { tick.id = 'tick-' + msg._id; tick.dataset.status = msg.status || 'sent'; tick.innerHTML = renderTickInner(msg.status || 'sent'); }
+      tempRow.dataset.msgId = msg._id;
+      tempRow.id = '';
+    }
+    MessageQueue.dequeue(tempId);
     // Notify partner via socket
     if (socket?.connected) socket.emit('message-sent', { to: chatPartnerId, message: msg });
   } catch (err) {
     if (err.message === 'Send a message request first') {
+      // Remove optimistic bubble
+      document.getElementById('row-temp-' + tempId)?.remove();
+      MessageQueue.dequeue(tempId);
       input.value = text;
       showRequestPrompt(chatPartnerId, chatPartnerName, text);
     } else {
-      showToast(err.message);
+      // Keep bubble visible (queued), mark with offline style
+      const failRow = document.getElementById('row-temp-' + tempId);
+      if (failRow) failRow.style.opacity = '0.6';
+      // Queue will auto-flush on reconnect
     }
   }
 }
@@ -556,3 +848,39 @@ async function submitReport(userId, username, reason) {
     showToast('Report submitted. Thank you!');
   } catch (err) { showToast('Report submitted!'); }
 }
+
+// ── Online dot in thread list ─────────────────────────────────
+// Called when a presence:update arrives for a user who may be in the threads list
+function refreshThreadOnlineState(userId) {
+  // Update thread row's online dot if visible
+  const threads = document.querySelectorAll('.chat-thread');
+  threads.forEach(t => {
+    const uid = t.dataset.userId;
+    if (uid && uid === String(userId)) {
+      let dot = t.querySelector('.thread-online-dot');
+      if (PresenceManager.onlineUsers.has(String(userId))) {
+        if (!dot) {
+          dot = document.createElement('span');
+          dot.className = 'thread-online-dot';
+          const avEl = t.querySelector('.t-av');
+          if (avEl) avEl.appendChild(dot);
+        }
+      } else {
+        dot?.remove();
+      }
+    }
+  });
+}
+
+// ── Wire typing manager to chat input ────────────────────────
+// Called from HTML: oninput="chatInputTyping()"
+function chatInputTyping() {
+  TypingManager.onKeyPress();
+}
+
+// ── Page visibility: stop typing when user hides the tab ─────
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    TypingManager.stop();
+  }
+});

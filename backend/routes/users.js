@@ -200,11 +200,26 @@ router.get('/:username', protect, async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username })
       .select('-password')
-      .populate('followers', '_id username name')
-      .populate('following', '_id username name');
+      .populate('followers', '_id username name avatar')
+      .populate('following', '_id username name avatar');
     if (!user) return res.status(404).json({ message: 'User not found' });
-    const posts = await Post.find({ user: user._id }).sort({ createdAt: -1 });
-    res.json({ user, posts });
+
+    const isOwner    = user._id.toString() === req.user.id;
+    const isFollower = user.followers.some(f => f._id.toString() === req.user.id);
+    const canSeeList = isOwner || !user.isPrivate || isFollower;
+
+    // For private accounts where viewer is not a follower/owner,
+    // return counts but hide the actual follower/following lists
+    const userObj = user.toObject();
+    if (!canSeeList) {
+      userObj.followers = [];
+      userObj.following = [];
+      userObj._followersCount = user.followers.length;
+      userObj._followingCount = user.following.length;
+    }
+
+    const posts = canSeeList ? await Post.find({ user: user._id }).sort({ createdAt: -1 }) : [];
+    res.json({ user: userObj, posts });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 

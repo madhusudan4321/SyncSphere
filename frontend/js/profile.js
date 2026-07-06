@@ -14,6 +14,11 @@ async function loadProfile(username, isOwn) {
   try {
       const { user, posts } = await api.get(`/users/${username}`);
       const isFollowing = user.followers.some(f => f._id === window.APP.user._id);
+      // canSeeLists: owner, or public account, or we are following them
+      const canSeeLists = isOwn || !user.isPrivate || isFollowing;
+      // Use real array lengths when available; fall back to server-supplied counts for private accounts
+      const followersCount = user.followers.length || user._followersCount || 0;
+      const followingCount = user.following.length || user._followingCount || 0;
       const blockedList = await api.get('/users/blocked/list').catch(() => []);
       const iBlockedThem = blockedList.some(u => u._id === user._id);
       const hasPendingRequest = user.followRequests && user.followRequests.some(f => f._id === window.APP.user._id || f === window.APP.user._id);
@@ -47,8 +52,8 @@ async function loadProfile(username, isOwn) {
               </div>
               <div class="profile-stats">
                 <div class="stat-item"><div class="s-num">${posts.length}</div><div class="s-label">Posts</div></div>
-                <div class="stat-item" onclick="openFollowModal('followers','${safeUsername}')" style="cursor:pointer"><div class="s-num">${user.followers.length}</div><div class="s-label">Followers</div></div>
-                <div class="stat-item" onclick="openFollowModal('following','${safeUsername}')" style="cursor:pointer"><div class="s-num">${user.following.length}</div><div class="s-label">Following</div></div>
+                <div class="stat-item" ${canSeeLists ? `onclick="openFollowModal('followers','${safeUsername}')" style="cursor:pointer"` : ''} ><div class="s-num">${followersCount}</div><div class="s-label">Followers</div></div>
+                <div class="stat-item" ${canSeeLists ? `onclick="openFollowModal('following','${safeUsername}')" style="cursor:pointer"` : ''} ><div class="s-num">${followingCount}</div><div class="s-label">Following</div></div>
               </div>
             </div>
             <div>
@@ -405,6 +410,16 @@ async function openFollowModal(type, username) {
 
   try {
     const data  = await api.get(`/users/${username}`);
+
+    // ── Privacy guard: if private account and we're not a follower, block access ──
+    const isOwnProfile = username === window.APP.user.username;
+    const iAmFollowing = data.user.followers.some(f => f._id === window.APP.user._id);
+    if (!isOwnProfile && data.user.isPrivate && !iAmFollowing) {
+      document.getElementById('follow-modal')?.remove();
+      showToast('This account is private');
+      return;
+    }
+
     const users = type === 'followers' ? data.user.followers : data.user.following;
     const list  = document.getElementById('follow-list');
     if (!users || users.length === 0) {

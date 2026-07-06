@@ -160,6 +160,9 @@ function hideActivityIndicator() {
   document.getElementById('chat-activity-indicator')?.remove();
 }
 
+// ── Quick emoji reactions (used in message context menu) ─────
+const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '😡', '👍'];
+
 function connectSocket() {
   if (socket?.connected) return;
   socket = io(SOCKET_URL, {

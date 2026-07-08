@@ -84,6 +84,43 @@
     </div>
   </div>
 
+  <!-- VERIFY EMAIL -->
+  <div id="screen-verify" class="screen">
+    <div class="auth-wrap">
+      <div class="auth-box">
+        <div class="auth-logo">
+          <img src="logo.png" alt="SyncSphere" style="width:150px;height:150px;object-fit:contain;mix-blend-mode:multiply;background:transparent">
+          <div class="auth-logo-text">SyncSphere</div>
+        </div>
+        <div class="auth-card">
+          <div style="text-align:center;margin-bottom:20px">
+            <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#0095f6,#00d4ff);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+              <svg width="28" height="28" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <p class="auth-desc" style="margin:0">Verify your email</p>
+            <p style="font-size:13px;color:var(--muted);margin-top:6px">We sent a 6-digit code to<br><strong id="verify-email-display"></strong></p>
+          </div>
+          <div class="otp-inputs" id="otp-inputs">
+            <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="otp-0" oninput="otpNext(this,1)" onkeydown="otpBack(event,this,null)">
+            <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="otp-1" oninput="otpNext(this,2)" onkeydown="otpBack(event,this,0)">
+            <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="otp-2" oninput="otpNext(this,3)" onkeydown="otpBack(event,this,1)">
+            <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="otp-3" oninput="otpNext(this,4)" onkeydown="otpBack(event,this,2)">
+            <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="otp-4" oninput="otpNext(this,5)" onkeydown="otpBack(event,this,3)">
+            <input class="otp-box" type="text" maxlength="1" inputmode="numeric" id="otp-5" oninput="otpNext(this,null)" onkeydown="otpBack(event,this,4)" onkeypress="if(event.key==='Enter')authVerifyEmail()">
+          </div>
+          <p class="auth-error" id="verify-err"></p>
+          <button class="btn-main" id="verify-btn" onclick="authVerifyEmail()">Verify Email</button>
+          <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:14px">
+            Didn't receive it?
+            <span id="resend-btn" onclick="authResendOTP()" style="color:var(--accent);cursor:pointer;font-weight:600">Resend OTP</span>
+            <span id="resend-timer" style="color:var(--muted);display:none"></span>
+          </p>
+        </div>
+        <div class="auth-switch"><span onclick="switchScreen('register')">← Back to Sign Up</span></div>
+      </div>
+    </div>
+  </div>
+
   <!-- FORGOT PASSWORD -->
   <div id="screen-forgot" class="screen">
     <div class="auth-wrap">

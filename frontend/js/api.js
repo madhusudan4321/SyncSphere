@@ -10,9 +10,15 @@ const api = {
     if (!isForm) headers['Content-Type'] = 'application/json';
     const options = { method, headers };
     if (data) options.body = isForm ? data : JSON.stringify(data);
-    const res = await fetch(BASE_URL + endpoint, options);
+    const res  = await fetch(BASE_URL + endpoint, options);
     const json = await res.json();
-    if (!res.ok) throw new Error(json.message || 'Request failed');
+    if (!res.ok) {
+      const err = new Error(json.message || 'Request failed');
+      // Attach all backend fields so callers can inspect them (e.g. needsVerification, email)
+      Object.assign(err, json);
+      err.status = res.status;
+      throw err;
+    }
     return json;
   },
   get:    (ep)           => api.request('GET',    ep),

@@ -15,11 +15,17 @@ const userSchema = new mongoose.Schema({
   isPrivate:      { type: Boolean, default: false },
   blockedUsers:   [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   reports:        [{ reason: String, reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, createdAt: { type: Date, default: Date.now } }],
-  resetOTP:       { type: String },
-  resetOTPExpiry: { type: Date },
+  resetOTP:         { type: String },
+  resetOTPExpiry:   { type: Date },
+  // ── Email verification ─────────────────────────────────────────
+  // default:true → existing accounts are grandfathered (no lockout).
+  // New users are explicitly set to false at registration time.
+  isVerified:       { type: Boolean, default: true },
+  verifyOTP:        { type: String },
+  verifyOTPExpiry:  { type: Date },
   // ── Presence ──────────────────────────────────────────────────
-  isOnline:       { type: Boolean, default: false },
-  lastSeen:       { type: Date, default: null },
+  isOnline:         { type: Boolean, default: false },
+  lastSeen:         { type: Date, default: null },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

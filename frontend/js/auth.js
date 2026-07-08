@@ -229,12 +229,14 @@ function authLogout() {
       localStorage.setItem('ss_feed_cache_ts', '0');
 
       // Splash shows for a MINIMUM of 4 seconds AND waits for data to load.
-      // Promise.allSettled never rejects, so the splash always hides.
-      const minDisplay  = new Promise(function (res) { setTimeout(res, 4000); });
-      const feedDone    = loadFeed();
-      const storiesDone = loadStories();
+      // Using a manual counter instead of Promise.allSettled for broad mobile
+      // browser compatibility (older Android WebView / iOS Safari).
+      var _splashDone = 0;
+      function _splashCheck() { if (++_splashDone >= 3) _hideSplash(); }
 
-      Promise.allSettled([minDisplay, feedDone, storiesDone]).then(_hideSplash);
+      setTimeout(_splashCheck, 4000);          // minimum 4-second display
+      loadFeed().then(_splashCheck, _splashCheck);     // feed settled
+      loadStories().then(_splashCheck, _splashCheck);  // stories settled
 
       connectSocket();
       loadThreads();
@@ -246,13 +248,29 @@ function authLogout() {
 // ── Splash screen ─────────────────────────────────────────────────────────────
 function _showSplash() {
   if (document.getElementById('ss-splash')) return;
-  const el = document.createElement('div');
+  var el = document.createElement('div');
   el.id = 'ss-splash';
+  // Use explicit top/right/bottom/left instead of 'inset' shorthand —
+  // 'inset' is unsupported on Android Chrome < 87 and iOS Safari < 14.1.
   el.style.cssText = [
-    'position:fixed', 'inset:0', 'z-index:9999',
+    'position:fixed',
+    'top:0', 'right:0', 'bottom:0', 'left:0',
+    'width:100%', 'height:100%',
+    'z-index:9999',
     'background:#fff',
-    'display:flex', 'flex-direction:column',
-    'align-items:center', 'justify-content:center', 'gap:20px'
+    'display:-webkit-box',
+    'display:-webkit-flex',
+    'display:flex',
+    '-webkit-box-orient:vertical',
+    '-webkit-flex-direction:column',
+    'flex-direction:column',
+    '-webkit-box-align:center',
+    '-webkit-align-items:center',
+    'align-items:center',
+    '-webkit-box-pack:center',
+    '-webkit-justify-content:center',
+    'justify-content:center',
+    'gap:20px'
   ].join(';');
   el.innerHTML =
     '<div style="font-family:\'Dancing Script\',cursive;font-size:42px;font-weight:700;' +
@@ -261,16 +279,16 @@ function _showSplash() {
     'background-clip:text;letter-spacing:1px;">SyncSphere</div>' +
     '<div style="width:32px;height:32px;border:3px solid #dbdbdb;' +
     'border-top-color:#833ab4;border-radius:50%;' +
+    '-webkit-animation:spin 0.8s linear infinite;' +
     'animation:spin 0.8s linear infinite;"></div>';
   document.body.appendChild(el);
 }
 
 function _hideSplash() {
-  const el = document.getElementById('ss-splash');
+  var el = document.getElementById('ss-splash');
   if (!el) return;
-  el.style.transition = 'opacity 0.35s ease';
-  el.style.opacity = '0';
-  setTimeout(function () { el.remove(); }, 380);
+  el.style.cssText += ';-webkit-transition:opacity 0.35s ease;transition:opacity 0.35s ease;opacity:0';
+  setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 400);
 }
 
 

@@ -180,6 +180,10 @@ function connectSocket() {
     MessageQueue.flush();
     // Wire call socket listeners after socket is ready
     if (typeof initCallListeners === 'function') initCallListeners();
+    // Re-request presence if a chat is already open (handles mobile refresh)
+    if (chatPartnerId && socket?.connected) {
+      socket.emit('presence:request', { targetId: chatPartnerId });
+    }
   });
 
   socket.on('connect_error', (err) => console.warn('Socket error:', err.message));
@@ -314,6 +318,7 @@ async function loadThreads() {
       if (!t.user?._id) return;
       const div = document.createElement('div');
       div.className = 'chat-thread';
+      div.dataset.userId = t.user._id;  // needed by call.js for caller name lookup
       const safeUser  = sanitize(t.user.name || t.user.username);
       const safeUname = sanitize(t.user.username);
       const lastTxt   = t.lastMsg ? sanitize(t.lastMsg.text.slice(0, 40)) : '';

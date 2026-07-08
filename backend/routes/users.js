@@ -195,6 +195,15 @@ router.put('/avatar', protect, uploadAvatar.single('avatar'), async (req, res) =
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// GET /api/users/by-id/:id — lightweight: resolve a userId to username (used by call.js)
+router.get('/by-id/:id', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('_id username name avatar');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 // GET /api/users/:username
 router.get('/:username', protect, async (req, res) => {
   try {

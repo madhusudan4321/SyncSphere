@@ -174,16 +174,22 @@ const CallManager = {
   async acceptCall() {
     clearTimeout(CallState.incomingTimeout);
     CallUI.hideIncoming();
-    CallUI.showActive(CallState.partnerName, CallState.callType);
+    // Show a connecting state while we acquire media
+    CallUI.showConnecting(CallState.partnerName, CallState.callType);
     CallState.status = 'active';
 
     try {
       await WebRTCManager.getMedia(CallState.callType);
       await WebRTCManager.initPC();
       WebRTCManager.addTracks();
+      // Media ready → switch to full active UI
+      CallUI.showActive(CallState.partnerName, CallState.callType);
       socket.emit('call:accepted', { callId: CallState.callId, to: CallState.partnerId });
     } catch (err) {
-      showToast('Could not access microphone/camera');
+      const msg = err.name === 'NotAllowedError'
+        ? 'Microphone permission denied. Please allow access and try again.'
+        : 'Could not access microphone/camera: ' + err.message;
+      showToast(msg);
       this.endCall('media_error');
     }
   },
@@ -193,18 +199,23 @@ const CallManager = {
     clearTimeout(CallState.incomingTimeout);
     CallUI.setStatus('Connecting...');
     CallState.status = 'active';
-    CallState.startTime = Date.now();
-    CallUI.startTimer();
 
     try {
       await WebRTCManager.getMedia(CallState.callType);
       await WebRTCManager.initPC();
       WebRTCManager.addTracks();
+      // Media ready → switch outgoing overlay to full active UI
+      CallUI.showActive(CallState.partnerName, CallState.callType);
+      CallState.startTime = Date.now();
+      CallUI.startTimer();
       const offer = await WebRTCManager.pc.createOffer();
       await WebRTCManager.pc.setLocalDescription(offer);
       socket.emit('call:offer', { callId: CallState.callId, to: CallState.partnerId, offer });
     } catch (err) {
-      showToast('Could not access microphone/camera');
+      const msg = err.name === 'NotAllowedError'
+        ? 'Microphone permission denied. Please allow access and try again.'
+        : 'Could not access microphone/camera: ' + err.message;
+      showToast(msg);
       this.endCall('media_error');
     }
   },
@@ -284,10 +295,18 @@ function wireCallSocketListeners() {
   if (!socket) return;
 
   socket.on('call:incoming', async ({ callId, from, callType }) => {
-    // Resolve caller name from thread list or fallback to ID
-    let fromName = from;
+    // Resolve caller name: first check thread list, then API
+    let fromName = null;
     const threadEl = document.querySelector(`.chat-thread[data-user-id="${from}"]`);
-    if (threadEl) fromName = threadEl.querySelector('.t-name')?.textContent || from;
+    if (threadEl) fromName = threadEl.querySelector('.t-name')?.textContent || null;
+    if (!fromName) {
+      // Fallback: fetch from API (fast since it hits cache)
+      try {
+        const data = await api.get(`/users/by-id/${from}`).catch(() => null);
+        if (data?.username) fromName = data.username;
+      } catch (_) {}
+    }
+    fromName = fromName || 'Unknown';
     CallManager.handleIncoming({ callId, from, callType, fromName });
   });
 
@@ -297,7 +316,7 @@ function wireCallSocketListeners() {
 
   socket.on('call:accepted', ({ callId }) => {
     if (CallState.callId === callId && CallState.role === 'caller') {
-      CallUI.showActive(CallState.partnerName, CallState.callType);
+      // Don't show active yet — onCallAccepted will show it after media is ready
       CallManager.onCallAccepted();
     }
   });
@@ -382,9 +401,26 @@ const CallUI = {
     document.getElementById('call-incoming-overlay')?.classList.remove('open');
   },
 
+  // Lightweight connecting screen shown while media permission prompt is active
+  showConnecting(name, callType) {
+    this.hideIncoming();
+    this.hideOutgoing();
+    const el = document.getElementById('call-connecting-overlay');
+    if (!el) return;
+    document.getElementById('call-conn-name').textContent = name;
+    document.getElementById('call-conn-type').textContent = callType === 'video' ? 'Video Call' : 'Voice Call';
+    document.getElementById('call-conn-av').textContent   = getInitials(name);
+    el.classList.add('open');
+  },
+
+  hideConnecting() {
+    document.getElementById('call-connecting-overlay')?.classList.remove('open');
+  },
+
   showActive(name, callType) {
     this.hideOutgoing();
     this.hideIncoming();
+    this.hideConnecting();
     const el = document.getElementById('call-active-overlay');
     if (!el) return;
     document.getElementById('call-active-name').textContent = name;
@@ -403,7 +439,9 @@ const CallUI = {
   hideActive(reason) {
     clearInterval(CallState.timerInterval);
     document.getElementById('call-active-overlay')?.classList.remove('open');
-    document.getElementById('call-timer').textContent = '00:00';
+    document.getElementById('call-connecting-overlay')?.classList.remove('open');
+    const timerEl = document.getElementById('call-timer');
+    if (timerEl) timerEl.textContent = '00:00';
   },
 
   setStatus(text) {

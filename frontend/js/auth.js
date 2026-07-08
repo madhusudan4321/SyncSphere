@@ -194,7 +194,7 @@ function authLogout() {
   // ── Show splash screen RIGHT NOW (before other scripts execute) ───────
   _showSplash();
 
-  setTimeout(function () {
+  setTimeout(async function () {
     document.getElementById('chat-title').textContent = window.APP.user.username;
     switchScreen('app');
 
@@ -226,18 +226,41 @@ function authLogout() {
       // ── Force a fresh API fetch on every app open ─────────────────────
       // Zeroing the cache timestamp makes loadFeed() skip the local cache
       // and hit the server, so the feed is always up-to-date on startup.
-      localStorage.setItem('ss_feed_cache_ts', '0');
+      // localStorage.setItem('ss_feed_cache_ts', '0');
 
       // Splash shows for a MINIMUM of 4 seconds AND waits for data to load.
       // Using a manual counter instead of Promise.allSettled for broad mobile
       // browser compatibility (older Android WebView / iOS Safari).
-      var _splashDone = 0;
-      function _splashCheck() { if (++_splashDone >= 3) _hideSplash(); }
+      // var _splashDone = 0;
+      // function _splashCheck() { if (++_splashDone >= 3) _hideSplash(); }
 
-      setTimeout(_splashCheck, 4000);          // minimum 4-second display
-      loadFeed().then(_splashCheck, _splashCheck);     // feed settled
-      loadStories().then(_splashCheck, _splashCheck);  // stories settled
+      // setTimeout(_splashCheck, 4000);          // minimum 4-second display
+      // loadFeed().then(_splashCheck, _splashCheck);     // feed settled
+      // loadStories().then(_splashCheck, _splashCheck);  // stories settled
 
+      // connectSocket();
+      // loadThreads();
+      // checkFollowRequests();
+
+      // Home tab
+
+      sessionStorage.removeItem('restoreProfile');
+
+      // Activate home tab
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+      document.getElementById('tab-home').classList.add('active');
+      document.getElementById('nav-home').classList.add('active');
+
+      // Load feed first
+      await loadFeed();
+
+      // Hide splash immediately after the feed is ready
+      _hideSplash();
+
+      // Load the remaining features in the background
+      loadStories();
       connectSocket();
       loadThreads();
       checkFollowRequests();

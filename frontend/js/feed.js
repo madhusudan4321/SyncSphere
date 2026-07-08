@@ -49,7 +49,7 @@ async function loadFeed(reset = true) {
         if (cachedPosts.length > 0) {
           fp.innerHTML = '';
           cachedPosts.forEach(p => { postDataMap[p._id] = p; fp.appendChild(buildPostCard(p)); });
-          loadStories();
+          await loadStories();
           // Silently fetch fresh data in background without spinner
           _refreshFeedSilently();
           return;

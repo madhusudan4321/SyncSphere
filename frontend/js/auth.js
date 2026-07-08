@@ -180,15 +180,19 @@ function authLogout() {
 }
 
 // ── Auto-login on page load ───────────────────────────────────────────────────
-// auth.js loads as script #2, BEFORE feed.js / stories.js / chat.js / profile.js.
-// setTimeout(0) defers execution until all scripts have parsed, so every function
-// referenced below (loadFeed, connectSocket, etc.) is guaranteed to be defined.
+// auth.js is script #2 — loads BEFORE feed.js / stories.js / chat.js / profile.js.
+// The overlay is injected synchronously so the user sees the splash screen
+// immediately. setTimeout(0) then defers all data calls until every script
+// has finished parsing (guaranteeing loadFeed, connectSocket etc. are defined).
 (function init() {
   const token = localStorage.getItem('pic_token');
   const user  = localStorage.getItem('pic_user');
   if (!token || !user) return; // no session — stay on login screen
 
   window.APP.user = JSON.parse(user);
+
+  // ── Show splash screen RIGHT NOW (before other scripts execute) ───────
+  _showSplash();
 
   setTimeout(function () {
     document.getElementById('chat-title').textContent = window.APP.user.username;
@@ -197,24 +201,78 @@ function authLogout() {
     const hash = window.location.hash;
 
     if (hash && hash.startsWith('#@')) {
-      // Deep-link: restore a profile tab directly
+      // Deep-link: open a specific profile tab directly
       const profileUsername = hash.slice(2);
       sessionStorage.setItem('restoreProfile', profileUsername);
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(n  => n.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       document.getElementById('tab-profile').classList.add('active');
       document.getElementById('nav-profile').classList.add('active');
+      // Splash shows briefly for profile deep-links then hides
+      setTimeout(_hideSplash, 1500);
+      connectSocket();
+      loadThreads();
+      checkFollowRequests();
     } else {
-      // Normal start: go to home tab — switchTab handles loadFeed + loadStories
+      // ── Home tab ──────────────────────────────────────────────────────
       sessionStorage.removeItem('restoreProfile');
-      switchTab('home');
-    }
 
-    connectSocket();
-    loadThreads();
-    checkFollowRequests();
+      // Activate home tab nav elements
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('tab-home').classList.add('active');
+      document.getElementById('nav-home').classList.add('active');
+
+      // ── Force a fresh API fetch on every app open ─────────────────────
+      // Zeroing the cache timestamp makes loadFeed() skip the local cache
+      // and hit the server, so the feed is always up-to-date on startup.
+      localStorage.setItem('ss_feed_cache_ts', '0');
+
+      // Splash shows for a MINIMUM of 4 seconds AND waits for data to load.
+      // Promise.allSettled never rejects, so the splash always hides.
+      const minDisplay  = new Promise(function (res) { setTimeout(res, 4000); });
+      const feedDone    = loadFeed();
+      const storiesDone = loadStories();
+
+      Promise.allSettled([minDisplay, feedDone, storiesDone]).then(_hideSplash);
+
+      connectSocket();
+      loadThreads();
+      checkFollowRequests();
+    }
   }, 0);
 })();
+
+// ── Splash screen ─────────────────────────────────────────────────────────────
+function _showSplash() {
+  if (document.getElementById('ss-splash')) return;
+  const el = document.createElement('div');
+  el.id = 'ss-splash';
+  el.style.cssText = [
+    'position:fixed', 'inset:0', 'z-index:9999',
+    'background:#fff',
+    'display:flex', 'flex-direction:column',
+    'align-items:center', 'justify-content:center', 'gap:20px'
+  ].join(';');
+  el.innerHTML =
+    '<div style="font-family:\'Dancing Script\',cursive;font-size:42px;font-weight:700;' +
+    'background:linear-gradient(90deg,#c13584,#833ab4,#405de6);' +
+    '-webkit-background-clip:text;-webkit-text-fill-color:transparent;' +
+    'background-clip:text;letter-spacing:1px;">SyncSphere</div>' +
+    '<div style="width:32px;height:32px;border:3px solid #dbdbdb;' +
+    'border-top-color:#833ab4;border-radius:50%;' +
+    'animation:spin 0.8s linear infinite;"></div>';
+  document.body.appendChild(el);
+}
+
+function _hideSplash() {
+  const el = document.getElementById('ss-splash');
+  if (!el) return;
+  el.style.transition = 'opacity 0.35s ease';
+  el.style.opacity = '0';
+  setTimeout(function () { el.remove(); }, 380);
+}
+
 
 // ── Toggle password visibility ────────────────────────────────────────────────
 function togglePassword(inputId, btn) {

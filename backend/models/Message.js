@@ -3,7 +3,10 @@ const mongoose = require('mongoose');
 const messageSchema = new mongoose.Schema({
   from:          { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   to:            { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  text:          { type: String, required: true },
+  // 'text' = plain text; 'media' = file attachment
+  type:          { type: String, enum: ['text', 'media'], default: 'text', index: true },
+  text:          { type: String, default: '' },       // empty for media messages
+  media:         { type: mongoose.Schema.Types.ObjectId, ref: 'Media', default: null },
   edited:        { type: Boolean, default: false },
   deletedForAll: { type: Boolean, default: false },
   reactions:     [{ user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, emoji: String }],
@@ -18,5 +21,6 @@ const messageSchema = new mongoose.Schema({
 
 // Index for fast pending-delivery queries on reconnect
 messageSchema.index({ to: 1, status: 1 });
+messageSchema.index({ from: 1, to: 1, createdAt: -1 });
 
-module.exports = mongoose.model('Message', messageSchema);
+module.exports = mongoose.model('Message', messageSchema);

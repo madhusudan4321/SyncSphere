@@ -52,6 +52,7 @@ app.use('/api/posts',    require('./routes/posts'));
 app.use('/api/stories',  require('./routes/stories'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/calls',    require('./routes/calls'));
+app.use('/api/media',    require('./routes/media'));
 
 // ── Global error handler ──────────────────────────────────────
 app.use((err, req, res, next) => {
@@ -251,6 +252,24 @@ io.on('connection', async (socket) => {
   socket.on('message-reacted', ({ msgId, to, reactions }) => {
     const room = [userId, to].sort().join('_');
     socket.to(room).emit('message-reacted', { msgId, reactions });
+  });
+
+  // ── Media message relay ─────────────────────────────────────
+  // Called by sender after a successful POST /api/media/upload.
+  // message is the fully-populated message object returned by the API.
+  socket.on('media:message', async ({ to, message }) => {
+    const room = [userId, to].sort().join('_');
+    // Relay to receiver's room
+    socket.to(room).emit('receive-message', message);
+
+    // Upgrade status to 'delivered' if receiver is online right now
+    if (message._id && isUserOnline(to)) {
+      try {
+        const now = new Date();
+        await Message.findByIdAndUpdate(message._id, { status: 'delivered', deliveredAt: now });
+        socket.emit('message:delivered', { msgIds: [message._id.toString()] });
+      } catch {}
+    }
   });
 
   // ════════════════════════════════════════════════════════════

@@ -10,7 +10,7 @@ router.get('/threads', protect, async (req, res) => {
   try {
     const messages = await Message.find({
       $or: [{ from: req.user.id }, { to: req.user.id }]
-    }).sort({ createdAt: -1 }).populate('from to', 'username name avatar');
+    }).sort({ createdAt: -1 }).populate('from to', 'username name avatar').populate('media');
 
     const threadMap = {};
     messages.forEach(msg => {
@@ -110,7 +110,7 @@ router.get('/:userId', protect, async (req, res) => {
         { from: req.params.userId, to: req.user.id }
       ],
       deletedForAll: { $ne: true }
-    }).sort({ createdAt: 1 }).populate('from to', 'username name avatar');
+    }).sort({ createdAt: 1 }).populate('from to', 'username name avatar').populate('media');
     res.json(messages);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });

@@ -474,11 +474,20 @@ function appendMessage(m, isMine) {
     : '';
 
   // Bubble row — NO timestamp inside anymore
-  row.innerHTML = `
-    <div class="msg-bubble-wrap">
-      <div class="msg-bubble" id="mb-${msgId}">${safeText}${editedBadge}</div>
-    </div>
-    <button class="msg-dots-btn" id="dots-${msgId}" onclick="_showMsgMenu('${msgId}',${isMine},event)">${dotsSvg}</button>`;
+  // ── Media message bubble ─────────────────────────────────
+  if (m.type === 'media' && m.media) {
+    row.innerHTML = `
+      <div class="msg-bubble-wrap">
+        <div class="msg-bubble msg-bubble-media" id="mb-${msgId}">${renderMediaBubble(m.media)}</div>
+      </div>
+      <button class="msg-dots-btn" id="dots-${msgId}" onclick="_showMsgMenu('${msgId}',${isMine},event)">${dotsSvg}</button>`;
+  } else {
+    row.innerHTML = `
+      <div class="msg-bubble-wrap">
+        <div class="msg-bubble" id="mb-${msgId}">${safeText}${editedBadge}</div>
+      </div>
+      <button class="msg-dots-btn" id="dots-${msgId}" onclick="_showMsgMenu('${msgId}',${isMine},event)">${dotsSvg}</button>`;
+  }
 
   const bubbleEl = row.querySelector('.msg-bubble');
   let holdTimer = null, longPressed = false;
@@ -810,6 +819,10 @@ function showChatUserMenu(userId, username) {
         <div onclick="CallManager.startCall('${userId}','${username}','video');document.getElementById('chat-user-menu').remove()" style="display:flex;align-items:center;gap:16px;padding:16px 24px;cursor:pointer;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
           <div style="width:40px;height:40px;border-radius:50%;background:#e3f2fd;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" fill="none" stroke="#0095f6" stroke-width="2" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div>
           <div><p style="font-size:15px;font-weight:600">Video Call</p></div>
+        </div>
+        <div onclick="openSharedMedia('${userId}','${username}');document.getElementById('chat-user-menu').remove()" style="display:flex;align-items:center;gap:16px;padding:16px 24px;cursor:pointer;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+          <div style="width:40px;height:40px;border-radius:50%;background:#f3e5f5;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" fill="none" stroke="#9b59b6" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg></div>
+          <div><p style="font-size:15px;font-weight:600">Shared Media</p><p style="font-size:12px;color:var(--muted)">Photos, videos & files</p></div>
         </div>
         <div onclick="chatMenuBlockUser('${userId}','${username}')" style="display:flex;align-items:center;gap:16px;padding:16px 24px;cursor:pointer;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
           <div style="width:40px;height:40px;border-radius:50%;background:#fdecea;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" fill="none" stroke="#ed4956" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>

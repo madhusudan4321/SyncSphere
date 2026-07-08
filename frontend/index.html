@@ -212,6 +212,9 @@
               </div>
               <div class="chat-messages" id="chat-messages"></div>
               <div class="chat-input-row">
+                <button class="attach-btn" onclick="UploadManager.open()" title="Attach file">
+                  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                </button>
                 <input type="text" id="chat-msg-input" placeholder="Message..." oninput="chatInputTyping()" onkeydown="if(event.key==='Enter')sendMessage()">
                 <button class="send-btn" onclick="sendMessage()">
                   <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></svg>
@@ -300,6 +303,28 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- INCOMING CALL OVERLAY -->
+<div id="media-viewer-overlay" class="media-viewer-overlay" onclick="if(event.target===this)MediaViewer.close()">
+  <div class="mv-header">
+    <span id="mv-title" class="mv-title"></span>
+    <div class="mv-actions">
+      <button class="mv-btn" id="mv-dl-btn" title="Download"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+      <button class="mv-btn" onclick="MediaViewer.zoom(1)" title="Zoom In">+</button>
+      <button class="mv-btn" onclick="MediaViewer.zoom(-1)" title="Zoom Out">&minus;</button>
+      <button class="mv-btn mv-close" onclick="MediaViewer.close()" title="Close">&times;</button>
+    </div>
+  </div>
+  <button class="mv-nav mv-nav-prev" id="mv-nav-prev" onclick="MediaViewer.prev()" style="display:none">&#8249;</button>
+  <div class="mv-content">
+    <img id="mv-image" src="" alt="" class="mv-image" style="display:none">
+    <video id="mv-video" controls class="mv-video" style="display:none"></video>
+  </div>
+  <button class="mv-nav mv-nav-next" id="mv-nav-next" onclick="MediaViewer.next()" style="display:none">&#8250;</button>
+</div>
+
+<!-- SHARED MEDIA PANEL (injected by JS) -->
+<div id="app-shell" style="position:fixed;inset:0;pointer-events:none;z-index:350"></div>
 
 <!-- INCOMING CALL OVERLAY -->
 <div id="call-incoming-overlay" class="call-overlay">
@@ -405,6 +430,7 @@
 <script src="js/search.js"></script>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script src="js/chat.js"></script>
+<script src="js/media.js"></script>
 <script src="js/call.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/refresh.js"></script>

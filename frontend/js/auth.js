@@ -180,25 +180,16 @@ function authLogout() {
 }
 
 // ── Auto-login on page load ───────────────────────────────────────────────────
-// IMPORTANT: auth.js is script #2 on the page (loaded before feed.js, stories.js,
-// chat.js, profile.js). The IIFE below shows the branded overlay synchronously,
-// then uses setTimeout(0) to defer the real init until ALL scripts have parsed —
-// guaranteeing loadFeed / loadStories / connectSocket etc. are defined.
+// auth.js loads as script #2, BEFORE feed.js / stories.js / chat.js / profile.js.
+// setTimeout(0) defers execution until all scripts have parsed, so every function
+// referenced below (loadFeed, connectSocket, etc.) is guaranteed to be defined.
 (function init() {
   const token = localStorage.getItem('pic_token');
   const user  = localStorage.getItem('pic_user');
+  if (!token || !user) return; // no session — stay on login screen
 
-  // No saved session — stay on the login screen (it is 'active' by default in HTML)
-  if (!token || !user) return;
-
-  // Restore user object immediately so window.APP.user is available synchronously
   window.APP.user = JSON.parse(user);
 
-  // Show the branded loading overlay RIGHT NOW, before any other scripts execute.
-  // This ensures the user never sees a blank white screen or broken partial UI.
-  _showAppLoadingOverlay();
-
-  // Defer everything that depends on other scripts (feed.js, chat.js, etc.)
   setTimeout(function () {
     document.getElementById('chat-title').textContent = window.APP.user.username;
     switchScreen('app');
@@ -206,77 +197,24 @@ function authLogout() {
     const hash = window.location.hash;
 
     if (hash && hash.startsWith('#@')) {
-      // ── Deep-link: open a specific profile tab ──────────────────────
+      // Deep-link: restore a profile tab directly
       const profileUsername = hash.slice(2);
       sessionStorage.setItem('restoreProfile', profileUsername);
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n  => n.classList.remove('active'));
       document.getElementById('tab-profile').classList.add('active');
       document.getElementById('nav-profile').classList.add('active');
-      _hideAppLoadingOverlay(); // profile tab needs no pre-loading
-      connectSocket();
-      loadThreads();
-      checkFollowRequests();
-
     } else {
-      // ── Normal home tab ─────────────────────────────────────────────
+      // Normal start: go to home tab — switchTab handles loadFeed + loadStories
       sessionStorage.removeItem('restoreProfile');
-
-      // Activate the Home tab UI (nav dot + panel) without calling switchTab()
-      // because switchTab triggers loadFeed/loadStories — we call those manually
-      // below so we can hook into their completion via Promise.allSettled.
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      document.getElementById('tab-home').classList.add('active');
-      document.getElementById('nav-home').classList.add('active');
-
-      // Safety net: force-hide the overlay after 8 s even if a request stalls.
-      // This prevents the app from being stuck on the loading screen forever.
-      const safetyTimer = setTimeout(_hideAppLoadingOverlay, 8000);
-
-      // Load feed + stories in parallel; hide the overlay once both settle.
-      // Promise.allSettled never rejects, so the overlay always gets hidden.
-      Promise.allSettled([loadFeed(), loadStories()]).then(function () {
-        clearTimeout(safetyTimer);
-        _hideAppLoadingOverlay();
-      });
-
-      // Socket + threads are non-blocking; start them alongside the above
-      connectSocket();
-      loadThreads();
-      checkFollowRequests();
+      switchTab('home');
     }
+
+    connectSocket();
+    loadThreads();
+    checkFollowRequests();
   }, 0);
 })();
-
-// ── App-level loading overlay ─────────────────────────────────────────────────
-function _showAppLoadingOverlay() {
-  if (document.getElementById('app-init-overlay')) return;
-  const overlay = document.createElement('div');
-  overlay.id = 'app-init-overlay';
-  overlay.style.cssText = [
-    'position:fixed', 'inset:0', 'z-index:9999',
-    'background:var(--surface)',
-    'display:flex', 'flex-direction:column',
-    'align-items:center', 'justify-content:center',
-    'gap:16px', 'pointer-events:none'
-  ].join(';');
-  overlay.innerHTML =
-    '<div style="font-family:\'Dancing Script\',cursive;font-size:36px;font-weight:700;' +
-    'background:linear-gradient(90deg,#c13584,#833ab4,#405de6);' +
-    '-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">' +
-    'SyncSphere</div>' +
-    '<div class="spinner" style="width:28px;height:28px;border-width:2.5px"></div>';
-  document.body.appendChild(overlay);
-}
-
-function _hideAppLoadingOverlay() {
-  const overlay = document.getElementById('app-init-overlay');
-  if (!overlay) return;
-  overlay.style.transition = 'opacity 0.25s ease';
-  overlay.style.opacity = '0';
-  setTimeout(() => overlay.remove(), 260);
-}
 
 // ── Toggle password visibility ────────────────────────────────────────────────
 function togglePassword(inputId, btn) {

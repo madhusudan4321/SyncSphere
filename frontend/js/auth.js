@@ -165,8 +165,9 @@ function _onAuthSuccess(data) {
   window.APP.user = data.user;
   document.getElementById('chat-title').textContent = data.user.username;
   switchScreen('app');
-  switchTab('home');
-  autoRefreshOnLogin();
+  switchTab('home');            // internally calls loadFeed() + loadStories()
+  loadThreads();               // load chat threads in the background
+  checkFollowRequests();       // check pending follow requests
   connectSocket();
 }
 
@@ -178,34 +179,101 @@ function authLogout() {
   switchScreen('login');
 }
 
-// ── Auto-login on page load ───────────────────────────────────────────────────
+// ── Auto-login on page load ───────────────────────────────────────
 (function init() {
-  setTimeout(() => {
-    const token = localStorage.getItem('pic_token');
-    const user  = localStorage.getItem('pic_user');
-    if (token && user) {
-      window.APP.user = JSON.parse(user);
-      document.getElementById('chat-title').textContent = window.APP.user.username;
-      switchScreen('app');
+  const token = localStorage.getItem('pic_token');
+  const user  = localStorage.getItem('pic_user');
 
-      const hash = window.location.hash;
-      if (hash && hash.startsWith('#@')) {
-        const profileUsername = hash.slice(2);
-        sessionStorage.setItem('restoreProfile', profileUsername);
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById('tab-profile').classList.add('active');
-        document.getElementById('nav-profile').classList.add('active');
-      } else {
-        sessionStorage.removeItem('restoreProfile');
-        switchTab('home');
-      }
+  // No session — stay on login screen (default active state in HTML)
+  if (!token || !user) return;
 
-      setTimeout(() => connectSocket(), 200);
-      setTimeout(() => { loadThreads(); checkFollowRequests(); }, 600);
-    }
-  }, 0);
+  // ── Restore session synchronously before first paint ─────────────
+  window.APP.user = JSON.parse(user);
+  document.getElementById('chat-title').textContent = window.APP.user.username;
+
+  // Show the app shell immediately, but inject a loading overlay so the
+  // blank white content area is NEVER exposed to the user.
+  switchScreen('app');
+  _showAppLoadingOverlay();
+
+  const hash = window.location.hash;
+  const isProfileDeepLink = hash && hash.startsWith('#@');
+
+  if (isProfileDeepLink) {
+    // Deep-link to a profile — restore that tab without feed data
+    const profileUsername = hash.slice(2);
+    sessionStorage.setItem('restoreProfile', profileUsername);
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('tab-profile').classList.add('active');
+    document.getElementById('nav-profile').classList.add('active');
+    _hideAppLoadingOverlay();
+    connectSocket();
+    loadThreads();
+    checkFollowRequests();
+  } else {
+    // Normal home tab — load feed + stories in parallel, then reveal
+    sessionStorage.removeItem('restoreProfile');
+
+    // Activate home tab UI elements (nav highlight) without triggering
+    // the switchTab() data-fetch — we handle fetching ourselves below.
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('tab-home').classList.add('active');
+    document.getElementById('nav-home').classList.add('active');
+
+    // Fetch feed + stories in parallel; hide overlay when both settle
+    Promise.allSettled([
+      loadFeed(),
+      loadStories()
+    ]).then(() => {
+      _hideAppLoadingOverlay();
+    });
+
+    // Socket + thread loading can happen in parallel — they don't block the UI
+    connectSocket();
+    loadThreads();
+    checkFollowRequests();
+  }
 })();
+
+// ── App-level loading overlay helpers ────────────────────────────
+function _showAppLoadingOverlay() {
+  if (document.getElementById('app-init-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'app-init-overlay';
+  overlay.style.cssText = [
+    'position:fixed',
+    'inset:0',
+    'z-index:9999',
+    'background:var(--surface)',
+    'display:flex',
+    'flex-direction:column',
+    'align-items:center',
+    'justify-content:center',
+    'gap:16px',
+    'pointer-events:none'
+  ].join(';');
+  overlay.innerHTML = `
+    <div style="font-family:'Dancing Script',cursive;font-size:36px;font-weight:700;
+      background:linear-gradient(90deg,#c13584,#833ab4,#405de6);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;">
+      SyncSphere
+    </div>
+    <div class="spinner" style="width:28px;height:28px;border-width:2.5px"></div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function _hideAppLoadingOverlay() {
+  const overlay = document.getElementById('app-init-overlay');
+  if (!overlay) return;
+  // Fade out smoothly
+  overlay.style.transition = 'opacity 0.25s ease';
+  overlay.style.opacity = '0';
+  setTimeout(() => overlay.remove(), 260);
+}
 
 // ── Toggle password visibility ────────────────────────────────────────────────
 function togglePassword(inputId, btn) {

@@ -379,8 +379,12 @@ const CallUI = {
   showOutgoing(name, callType) {
     const el = document.getElementById('call-outgoing-overlay');
     if (!el) return;
-    document.getElementById('call-out-name').textContent = name;
-    document.getElementById('call-out-type').textContent = callType === 'video' ? 'Video Call' : 'Voice Call';
+    const nameEl = document.getElementById('call-out-name');
+    const typeEl = document.getElementById('call-out-type');
+    const avEl   = document.getElementById('call-out-av');
+    if (nameEl) nameEl.textContent = name;
+    if (typeEl) typeEl.textContent = callType === 'video' ? 'Video Call' : 'Voice Call';
+    if (avEl)   avEl.textContent   = getInitials(name);
     el.classList.add('open');
   },
 
@@ -407,9 +411,12 @@ const CallUI = {
     this.hideOutgoing();
     const el = document.getElementById('call-connecting-overlay');
     if (!el) return;
-    document.getElementById('call-conn-name').textContent = name;
-    document.getElementById('call-conn-type').textContent = callType === 'video' ? 'Video Call' : 'Voice Call';
-    document.getElementById('call-conn-av').textContent   = getInitials(name);
+    const nameEl = document.getElementById('call-conn-name');
+    const typeEl = document.getElementById('call-conn-type');
+    const avEl   = document.getElementById('call-conn-av');
+    if (nameEl) nameEl.textContent = name;
+    if (typeEl) typeEl.textContent = callType === 'video' ? 'Video Call' : 'Voice Call';
+    if (avEl)   avEl.textContent   = getInitials(name);
     el.classList.add('open');
   },
 
@@ -423,15 +430,19 @@ const CallUI = {
     this.hideConnecting();
     const el = document.getElementById('call-active-overlay');
     if (!el) return;
-    document.getElementById('call-active-name').textContent = name;
-    document.getElementById('call-active-type').textContent = callType === 'video' ? 'Video Call' : 'Voice Call';
-    document.getElementById('call-active-av').textContent = getInitials(name);
-
+    const nameEl   = document.getElementById('call-active-name');
+    const typeEl   = document.getElementById('call-active-type');
+    const avEl     = document.getElementById('call-active-av');
+    const videoArea = document.getElementById('call-video-area');
+    const camBtn   = document.getElementById('call-cam-btn');
+    const flipBtn  = document.getElementById('call-flip-btn');
+    if (nameEl) nameEl.textContent = name;
+    if (typeEl) typeEl.textContent = callType === 'video' ? 'Video Call' : 'Voice Call';
+    if (avEl)   avEl.textContent   = getInitials(name);
     const isVideo = callType === 'video';
-    document.getElementById('call-video-area').style.display = isVideo ? 'block' : 'none';
-    document.getElementById('call-cam-btn').style.display    = isVideo ? 'flex' : 'none';
-    document.getElementById('call-flip-btn').style.display   = isVideo ? 'flex' : 'none';
-
+    if (videoArea) videoArea.style.display = isVideo ? 'block' : 'none';
+    if (camBtn)    camBtn.style.display    = isVideo ? 'flex' : 'none';
+    if (flipBtn)   flipBtn.style.display   = isVideo ? 'flex' : 'none';
     el.classList.add('open');
     this.updateControls();
   },

@@ -361,7 +361,8 @@ async function openSharedMedia(partnerIdArg, partnerNameArg) {
     </div>
     <div id="smp-body" class="smp-body"><div class="loader"><div class="spinner"></div></div></div>
     <div id="smp-pagination" class="smp-pagination"></div>`;
-  document.getElementById('app-shell').appendChild(panel);
+  const mount = document.getElementById('media-mount') || document.body;
+  mount.appendChild(panel);
   requestAnimationFrame(() => panel.classList.add('open'));
   await smpLoad(chatId);
 }

@@ -1,6 +1,7 @@
 // ── media.js — Media Sharing Engine ──────────────────────────────────────────
 
-const MEDIA_API = 'https://syncsphere-api.onrender.com/api/media';
+// Reuse the same base URL already declared in api.js
+const MEDIA_API = (typeof BASE_URL !== 'undefined' ? BASE_URL : 'https://syncsphere-api.onrender.com/api') + '/media';
 
 const ACCEPT_TYPES = [
   'image/*','video/*','audio/*',
@@ -73,7 +74,11 @@ const UploadManager = {
     }
   },
 
-  open() { document.getElementById('media-file-input')?.click(); },
+  open() {
+    // Ensure file input exists even if init() wasn't called explicitly
+    if (!document.getElementById('media-file-input')) this.init();
+    document.getElementById('media-file-input')?.click();
+  },
 
   handleFiles(files) {
     if (!files.length) return;
@@ -329,7 +334,9 @@ async function openSharedMedia(partnerIdArg, partnerNameArg) {
   const name = partnerNameArg || chatPartnerName || 'Chat';
   if (!pid) return;
 
-  const me     = window.APP?.user?._id;
+  // Resolve current user ID from window.APP or localStorage fallback
+  const me = window.APP?.user?._id ||
+              (() => { try { return JSON.parse(localStorage.getItem('pic_user'))?._id; } catch { return null; } })();
   const chatId = [me, pid].sort().join('_');
 
   document.getElementById('shared-media-panel')?.remove();
@@ -456,8 +463,11 @@ function smpCard(m) {
   </div>`;
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-// Called from chat.js openChatWindow
+// ── Init ─────────────────────────────────────────────────────────────────────
+// Auto-initialise when the script loads (scripts are deferred to end of body)
 function initMediaManager() {
   UploadManager.init();
 }
+
+// Run immediately — DOM is already ready since script tag is at end of body
+initMediaManager();

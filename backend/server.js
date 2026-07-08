@@ -51,6 +51,7 @@ app.use('/api/users',    require('./routes/users'));
 app.use('/api/posts',    require('./routes/posts'));
 app.use('/api/stories',  require('./routes/stories'));
 app.use('/api/messages', require('./routes/messages'));
+app.use('/api/calls',    require('./routes/calls'));
 
 // ── Global error handler ──────────────────────────────────────
 app.use((err, req, res, next) => {
@@ -100,6 +101,21 @@ function removeSession(userId, socketId) {
 function isUserOnline(userId) {
   const s = userSessions.get(userId?.toString());
   return !!(s && s.size > 0);
+}
+
+// ── In-memory call session tracking ──────────────────────────
+// callSessions: Map<callId, { callerId, receiverId, callType, startedAt, timeoutId, answeredAt }>
+// activeCalls:  Map<userId, callId> — who is currently in/ringing a call
+const callSessions = new Map();
+const activeCalls  = new Map();
+
+function endCallSession(callId) {
+  const session = callSessions.get(callId);
+  if (!session) return;
+  clearTimeout(session.timeoutId);
+  activeCalls.delete(session.callerId);
+  activeCalls.delete(session.receiverId);
+  callSessions.delete(callId);
 }
 
 // ── Helper: deliver pending 'sent' messages to a newly-online user ──
@@ -237,6 +253,146 @@ io.on('connection', async (socket) => {
     socket.to(room).emit('message-reacted', { msgId, reactions });
   });
 
+  // ════════════════════════════════════════════════════════════
+  // ── CALL SIGNALING ──────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════
+  const Call = require('./models/Call');
+
+  // call:start — caller initiates, server routes to receiver
+  socket.on('call:start', ({ callId, to, callType }) => {
+    if (!callId || !to || !['voice','video'].includes(callType)) return;
+
+    // Prevent duplicate call initiation
+    if (activeCalls.has(userId)) {
+      socket.emit('call:error', { message: 'You are already in a call' });
+      return;
+    }
+
+    // Check if receiver is online
+    if (!isUserOnline(to)) {
+      socket.emit('call:error', { message: 'User is offline' });
+      // Save missed call immediately
+      Call.create({ callId, callerId: userId, receiverId: to, callType, status: 'missed', startedAt: new Date() }).catch(() => {});
+      return;
+    }
+
+    // Check if receiver is already in a call → busy
+    if (activeCalls.has(to)) {
+      socket.emit('call:busy', { callId });
+      return;
+    }
+
+    const startedAt = new Date();
+    // Mark both as busy
+    activeCalls.set(userId, callId);
+    activeCalls.set(to, callId);
+
+    // 30-second missed-call timeout
+    const timeoutId = setTimeout(async () => {
+      const session = callSessions.get(callId);
+      if (!session) return;
+      endCallSession(callId);
+      // Notify both sides
+      io.to(userId).emit('call:missed', { callId, by: to });
+      io.to(to).emit('call:missed',     { callId, by: userId });
+      // Save missed call record
+      try {
+        await Call.create({ callId, callerId: userId, receiverId: to, callType, status: 'missed', startedAt, endedAt: new Date() });
+      } catch {}
+    }, 30000);
+
+    callSessions.set(callId, { callerId: userId, receiverId: to, callType, startedAt, timeoutId, answeredAt: null });
+
+    // Notify receiver
+    io.to(to).emit('call:incoming', { callId, from: userId, callType });
+  });
+
+  // call:ringing — receiver's device is ringing, relay to caller
+  socket.on('call:ringing', ({ callId, to }) => {
+    io.to(to).emit('call:ringing', { callId });
+  });
+
+  // call:accepted — receiver accepted, relay to caller, record answeredAt
+  socket.on('call:accepted', ({ callId, to }) => {
+    const session = callSessions.get(callId);
+    if (!session) return;
+    clearTimeout(session.timeoutId); // Cancel missed-call timeout
+    session.answeredAt = new Date();
+    io.to(to).emit('call:accepted', { callId });
+  });
+
+  // call:rejected — receiver declined, relay to caller, save record
+  socket.on('call:rejected', async ({ callId, to }) => {
+    const session = callSessions.get(callId);
+    if (!session) { endCallSession(callId); return; }
+    endCallSession(callId);
+    io.to(to).emit('call:rejected', { callId });
+    try {
+      await Call.create({
+        callId, callerId: session.callerId, receiverId: session.receiverId,
+        callType: session.callType, status: 'rejected',
+        startedAt: session.startedAt, endedAt: new Date(),
+      });
+    } catch {}
+  });
+
+  // call:busy — relay busy signal from server to caller
+  // (handled above in call:start, but client can also emit for UI feedback)
+  socket.on('call:busy', ({ callId, to }) => {
+    io.to(to).emit('call:busy', { callId });
+  });
+
+  // call:offer — WebRTC SDP offer, relay to receiver
+  socket.on('call:offer', ({ callId, to, offer }) => {
+    io.to(to).emit('call:offer', { callId, offer, from: userId });
+  });
+
+  // call:answer — WebRTC SDP answer, relay to caller
+  socket.on('call:answer', ({ callId, to, answer }) => {
+    io.to(to).emit('call:answer', { callId, answer });
+  });
+
+  // call:iceCandidate — relay ICE candidates bidirectionally
+  socket.on('call:iceCandidate', ({ callId, to, candidate }) => {
+    io.to(to).emit('call:iceCandidate', { callId, candidate });
+  });
+
+  // call:ended — either side ended the call, finalize DB record
+  socket.on('call:ended', async ({ callId, to }) => {
+    const session = callSessions.get(callId);
+    if (to) io.to(to).emit('call:ended', { callId });
+
+    if (!session) return;
+    const endedAt  = new Date();
+    const duration = session.answeredAt
+      ? Math.round((endedAt - session.answeredAt) / 1000)
+      : 0;
+    const status   = session.answeredAt ? 'answered' : 'cancelled';
+    endCallSession(callId);
+
+    try {
+      // Avoid duplicate if already saved (missed/rejected)
+      const existing = await Call.findOne({ callId });
+      if (!existing) {
+        await Call.create({
+          callId, callerId: session.callerId, receiverId: session.receiverId,
+          callType: session.callType, status, duration,
+          startedAt: session.startedAt, answeredAt: session.answeredAt, endedAt,
+        });
+      } else {
+        await Call.findOneAndUpdate({ callId }, { $set: { endedAt, duration, status } });
+      }
+      // Notify both sides to refresh call history
+      io.to(session.callerId.toString()).emit('call:historyUpdated');
+      io.to(session.receiverId.toString()).emit('call:historyUpdated');
+    } catch {}
+  });
+
+  // call:reconnect — client signals it wants to re-establish
+  socket.on('call:reconnect', ({ callId, to }) => {
+    io.to(to).emit('call:reconnect', { callId, from: userId });
+  });
+
   // ── Disconnect ──────────────────────────────────────────────
   socket.on('disconnect', async () => {
     removeSession(userId, socket.id);
@@ -244,8 +400,27 @@ io.on('connection', async (socket) => {
     if (!isUserOnline(userId)) {
       const now = new Date();
       await User.findByIdAndUpdate(userId, { isOnline: false, lastSeen: now }).catch(() => {});
-      // Broadcast offline + last seen to everyone
       socket.broadcast.emit('user:offline', { userId, lastSeen: now });
+
+      // ── Auto-end any active call on disconnect ──────────────
+      const activeCallId = activeCalls.get(userId);
+      if (activeCallId) {
+        const session = callSessions.get(activeCallId);
+        if (session) {
+          const partnerId = session.callerId === userId ? session.receiverId : session.callerId;
+          io.to(partnerId.toString()).emit('call:ended', { callId: activeCallId, reason: 'disconnected' });
+          // Save the call log
+          const endedAt  = new Date();
+          const duration = session.answeredAt ? Math.round((endedAt - session.answeredAt) / 1000) : 0;
+          const status   = session.answeredAt ? 'answered' : 'missed';
+          endCallSession(activeCallId);
+          Call.findOne({ callId: activeCallId }).then(existing => {
+            if (!existing) {
+              Call.create({ callId: activeCallId, callerId: session.callerId, receiverId: session.receiverId, callType: session.callType, status, duration, startedAt: session.startedAt, answeredAt: session.answeredAt, endedAt }).catch(() => {});
+            }
+          }).catch(() => {});
+        }
+      }
     }
   });
 });

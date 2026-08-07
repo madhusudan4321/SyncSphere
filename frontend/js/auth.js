@@ -223,43 +223,23 @@ function authLogout() {
       document.getElementById('tab-home').classList.add('active');
       document.getElementById('nav-home').classList.add('active');
 
-      // ── Force a fresh API fetch on every app open ─────────────────────
-      // Zeroing the cache timestamp makes loadFeed() skip the local cache
-      // and hit the server, so the feed is always up-to-date on startup.
-      // localStorage.setItem('ss_feed_cache_ts', '0');
+      // ── Hide splash after feed loads OR max 5 seconds (whichever is first) ──
+      // The Render free-tier backend can cold-start for 30-60s, so we cap
+      // the splash duration to keep the app feeling responsive.
+      var _splashHidden = false;
+      function _hideSplashOnce() {
+        if (_splashHidden) return;
+        _splashHidden = true;
+        _hideSplash();
+      }
 
-      // Splash shows for a MINIMUM of 4 seconds AND waits for data to load.
-      // Using a manual counter instead of Promise.allSettled for broad mobile
-      // browser compatibility (older Android WebView / iOS Safari).
-      // var _splashDone = 0;
-      // function _splashCheck() { if (++_splashDone >= 3) _hideSplash(); }
+      // Safety timeout: hide splash after 5 seconds no matter what
+      setTimeout(_hideSplashOnce, 5000);
 
-      // setTimeout(_splashCheck, 4000);          // minimum 4-second display
-      // loadFeed().then(_splashCheck, _splashCheck);     // feed settled
-      // loadStories().then(_splashCheck, _splashCheck);  // stories settled
+      // Start loading feed (hides splash when done if under 5s)
+      loadFeed().then(_hideSplashOnce, _hideSplashOnce);
 
-      // connectSocket();
-      // loadThreads();
-      // checkFollowRequests();
-
-      // Home tab
-
-      sessionStorage.removeItem('restoreProfile');
-
-      // Activate home tab
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
-      document.getElementById('tab-home').classList.add('active');
-      document.getElementById('nav-home').classList.add('active');
-
-      // Load feed first
-      await loadFeed();
-
-      // Hide splash immediately after the feed is ready
-      _hideSplash();
-
-      // Load the remaining features in the background
+      // Start all background features immediately — don't wait for feed
       loadStories();
       connectSocket();
       loadThreads();

@@ -13,6 +13,19 @@ const api = {
     const res  = await fetch(BASE_URL + endpoint, options);
     const json = await res.json();
     if (!res.ok) {
+      // ── Auto-logout on expired / invalid token ──────────────────────
+      // If ANY API call returns 401 and we're not on a login/register
+      // endpoint, the session is dead — clear it and go to login screen.
+      if (res.status === 401 && !/\/(login|register)/.test(endpoint)) {
+        localStorage.removeItem('pic_token');
+        localStorage.removeItem('pic_user');
+        localStorage.removeItem('ss_feed_cache');
+        localStorage.removeItem('ss_feed_cache_ts');
+        window.APP.user = null;
+        switchScreen('login');
+        showToast('Session expired. Please log in again.');
+        // Still throw so the calling code's .catch / try-catch can clean up
+      }
       const err = new Error(json.message || 'Request failed');
       // Attach all backend fields so callers can inspect them (e.g. needsVerification, email)
       Object.assign(err, json);

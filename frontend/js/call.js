@@ -1,12 +1,37 @@
 // ── Call.js — WebRTC Voice/Video Calling Engine ──────────────
 // Requires: socket (from chat.js), api (from api.js)
 
-// ── STUN configuration ────────────────────────────────────────
+// ── ICE configuration (STUN + TURN for NAT/firewall traversal) ──
+// STUN alone fails when both users are behind symmetric NATs
+// (common on mobile networks & corporate WiFi). TURN relays
+// traffic as a fallback, making calls work reliably everywhere.
 const ICE_SERVERS = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-  ]
+    { urls: 'stun:stun.relay.metered.ca:80' },
+    {
+      urls: 'turn:global.relay.metered.ca:80',
+      username: 'e8dd65ea92afbab44a993c5e',
+      credential: '4F9kHvKxFEvJz/cY',
+    },
+    {
+      urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+      username: 'e8dd65ea92afbab44a993c5e',
+      credential: '4F9kHvKxFEvJz/cY',
+    },
+    {
+      urls: 'turn:global.relay.metered.ca:443',
+      username: 'e8dd65ea92afbab44a993c5e',
+      credential: '4F9kHvKxFEvJz/cY',
+    },
+    {
+      urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+      username: 'e8dd65ea92afbab44a993c5e',
+      credential: '4F9kHvKxFEvJz/cY',
+    },
+  ],
+  iceCandidatePoolSize: 10,
 };
 
 // ── Call state ────────────────────────────────────────────────
@@ -51,14 +76,29 @@ const WebRTCManager = {
     };
 
     this.pc.onconnectionstatechange = () => {
-      const s = this.pc.connectionState;
+      const s = this.pc?.connectionState;
       if (s === 'connected') CallUI.setStatus('Connected');
-      if (s === 'disconnected' || s === 'failed') CallManager.endCall('connection_lost');
+      if (s === 'failed') {
+        // Try ICE restart once before giving up
+        if (!this._iceRestarted) {
+          this._iceRestarted = true;
+          this.pc.restartIce();
+          return;
+        }
+        CallManager.endCall('connection_lost');
+      }
+      if (s === 'disconnected') {
+        // Brief disconnections are normal (network switch); wait 5s
+        this._disconnectTimer = setTimeout(() => {
+          if (this.pc?.connectionState === 'disconnected') {
+            CallManager.endCall('connection_lost');
+          }
+        }, 5000);
+      }
     };
 
-    // Flush queued ICE candidates
-    this.pendingCandidates.forEach(c => this.pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {}));
-    this.pendingCandidates = [];
+    // NOTE: pendingCandidates are flushed in _flushCandidates(),
+    // called after setRemoteDescription — NOT here.
   },
 
   async getMedia(callType) {
@@ -110,7 +150,17 @@ const WebRTCManager = {
     this.localStream = newStream;
   },
 
+  // Flush any ICE candidates that arrived before setRemoteDescription
+  _flushCandidates() {
+    if (!this.pc || !this.pc.remoteDescription) return;
+    this.pendingCandidates.forEach(c =>
+      this.pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {})
+    );
+    this.pendingCandidates = [];
+  },
+
   cleanup() {
+    clearTimeout(this._disconnectTimer);
     this.localStream?.getTracks().forEach(t => t.stop());
     this.pc?.close();
     this.pc = null;
@@ -118,6 +168,7 @@ const WebRTCManager = {
     this.remoteStream = null;
     this.isMuted = false;
     this.isCamOff = false;
+    this._iceRestarted = false;
     this.pendingCandidates = [];
   },
 };
@@ -224,6 +275,8 @@ const CallManager = {
   async onOffer(offer) {
     if (!WebRTCManager.pc) await WebRTCManager.initPC();
     await WebRTCManager.pc.setRemoteDescription(new RTCSessionDescription(offer));
+    // Now that remote description is set, flush any early ICE candidates
+    WebRTCManager._flushCandidates();
     const answer = await WebRTCManager.pc.createAnswer();
     await WebRTCManager.pc.setLocalDescription(answer);
     socket.emit('call:answer', { callId: CallState.callId, to: CallState.partnerId, answer });
@@ -234,6 +287,8 @@ const CallManager = {
   // ── Caller: got answer → finalize connection ─────────────
   async onAnswer(answer) {
     await WebRTCManager.pc?.setRemoteDescription(new RTCSessionDescription(answer));
+    // Now that remote description is set, flush any early ICE candidates
+    WebRTCManager._flushCandidates();
   },
 
   // ── ICE candidate ─────────────────────────────────────────
@@ -577,7 +632,11 @@ async function loadCallHistory() {
 }
 
 // ── Wire socket listeners once socket is available ────────────
-// Called from connectSocket() in chat.js after socket is created
+// Called from connectSocket() in chat.js after socket is created.
+// Guard against duplicate registration on socket reconnects.
+let _callListenersWired = false;
 function initCallListeners() {
+  if (_callListenersWired) return;
+  _callListenersWired = true;
   wireCallSocketListeners();
 }

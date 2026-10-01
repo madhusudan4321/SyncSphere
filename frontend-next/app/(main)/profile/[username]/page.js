@@ -121,31 +121,44 @@ export default function UserProfilePage() {
       </div>
 
       {/* Profile Header */}
-      <div className="px-5 pt-5 pb-3">
+      <div className="px-4 pt-4 pb-3">
         <div className="flex items-center gap-5 mb-4">
-          <Avatar user={profile} size={80} fontSize={24} />
-          <div className="flex gap-6 flex-1 justify-center">
+          {/* Avatar with gradient ring */}
+          <div className="w-[82px] h-[82px] rounded-full bg-instagram-gradient p-[3px] flex-shrink-0">
+            <div className="w-full h-full rounded-full bg-surface border-[3px] border-white flex items-center justify-center overflow-hidden">
+              {profile.avatar ? (
+                <img src={profile.avatar} alt="" className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <span className="text-[26px] font-bold text-text">
+                  {(profile.name || profile.username || '?')[0]?.toUpperCase()}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="flex flex-1 justify-around">
             <div className="text-center">
-              <p className="text-lg font-bold">{profile.postCount || posts.length || 0}</p>
-              <p className="text-xs text-muted">Posts</p>
+              <p className="text-[17px] font-bold">{profile.postCount || posts.length || 0}</p>
+              <p className="text-xs">Posts</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold">{profile.followersCount || profile.followers?.length || 0}</p>
-              <p className="text-xs text-muted">Followers</p>
+              <p className="text-[17px] font-bold">{profile.followersCount || profile.followers?.length || 0}</p>
+              <p className="text-xs">Followers</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-bold">{profile.followingCount || profile.following?.length || 0}</p>
-              <p className="text-xs text-muted">Following</p>
+              <p className="text-[17px] font-bold">{profile.followingCount || profile.following?.length || 0}</p>
+              <p className="text-xs">Following</p>
             </div>
           </div>
         </div>
 
         {/* Name & Bio */}
         <div className="mb-3">
-          <p className="text-sm font-bold">{profile.name || profile.username}</p>
-          {profile.bio && <p className="text-sm text-text mt-0.5">{profile.bio}</p>}
+          <p className="text-sm font-semibold">{profile.name || profile.username}</p>
+          {profile.bio && <p className="text-[13px] text-text mt-0.5 leading-relaxed">{profile.bio}</p>}
           {profile.website && (
-            <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-accent font-semibold">
+            <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-[13px] text-accent font-semibold">
               {profile.website.replace(/^https?:\/\//, '')}
             </a>
           )}
@@ -188,8 +201,18 @@ export default function UserProfilePage() {
         </div>
       </div>
 
+      {/* Posts Tab Header */}
+      <div className="flex border-t border-border border-b border-border">
+        <div className="flex-1 py-2.5 text-center border-t-2 border-t-text text-[13px] font-semibold text-text flex items-center justify-center gap-1.5">
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+          </svg>
+          Posts
+        </div>
+      </div>
+
       {/* Post Grid */}
-      <div className="border-t border-border">
+      <div>
         {isPrivateAndNotFollowing ? (
           <div className="text-center py-16 text-muted">
             <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="mx-auto mb-3 text-border">
@@ -203,13 +226,13 @@ export default function UserProfilePage() {
             <p className="text-base font-semibold">No Posts Yet</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-0.5">
+          <div className="grid grid-cols-3 gap-[2px]">
             {posts.map(post => (
               <div key={post._id} className="aspect-square bg-surface2 cursor-pointer overflow-hidden hover:opacity-80 transition-opacity">
                 {post.image ? (
-                  <img src={post.image} alt="" className="w-full h-full object-cover" />
+                  <img src={post.image} alt="" className="w-full h-full object-cover block hover:scale-105 transition-transform" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-3xl bg-surface2">
+                  <div className="w-full h-full flex items-center justify-center text-[40px] bg-surface2">
                     {post.emoji || '📷'}
                   </div>
                 )}

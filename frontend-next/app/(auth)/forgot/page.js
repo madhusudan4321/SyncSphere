@@ -62,8 +62,8 @@ export default function ForgotPage() {
   return (
     <>
       <div className="text-center mb-1 flex flex-col items-center gap-0">
-        <Image src="/logo.png" alt="SyncSphere" width={60} height={60} className="mx-auto" />
-        <h1 className="font-[family-name:var(--font-dancing)] text-[42px] font-bold bg-auth-gradient">
+        <Image src="/logo.png" alt="SyncSphere" width={80} height={80} className="mx-auto" priority />
+        <h1 className="font-[family-name:var(--font-dancing)] text-[52px] font-bold bg-auth-gradient">
           SyncSphere
         </h1>
       </div>

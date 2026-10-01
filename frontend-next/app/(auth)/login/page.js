@@ -8,26 +8,145 @@ import PasswordInput from '@/components/ui/PasswordInput';
 import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
 
+const styles = {
+  page: {
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '32px 16px',
+    background: '#fafafa',
+    boxSizing: 'border-box',
+  },
+  container: {
+    width: '100%',
+    maxWidth: 380,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
+  logoWrap: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  brand: {
+    fontFamily: 'var(--font-dancing), "Dancing Script", cursive',
+    fontSize: 52,
+    fontWeight: 700,
+    lineHeight: 1.1,
+    margin: '4px 0 0',
+    background: 'linear-gradient(90deg, #4f46e5, #c026d3, #e11d48)',
+    WebkitBackgroundClip: 'text',
+    backgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    color: 'transparent',
+  },
+  card: {
+    background: '#ffffff',
+    border: '1px solid #dbdbdb',
+    borderRadius: 8,
+    padding: '32px 40px 24px',
+    marginBottom: 12,
+    boxSizing: 'border-box',
+  },
+  heading: {
+    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: 600,
+    lineHeight: 1.4,
+    color: '#262626',
+    margin: '0 0 24px',
+    fontFamily: 'var(--font-playfair), Georgia, serif',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+  },
+  error: {
+    color: '#ed4956',
+    fontSize: 13,
+    textAlign: 'center',
+    margin: '2px 0 0',
+  },
+  button: {
+    width: '100%',
+    padding: '11px 0',
+    marginTop: 8,
+    borderRadius: 8,
+    border: 'none',
+    background: '#0095f6',
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'opacity 0.15s',
+  },
+  forgotWrap: { textAlign: 'center', marginTop: 20 },
+  forgot: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#00376b',
+    textDecoration: 'none',
+  },
+  switchCard: {
+    background: '#ffffff',
+    border: '1px solid #dbdbdb',
+    borderRadius: 8,
+    padding: '20px 16px',
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#737373',
+    boxSizing: 'border-box',
+  },
+  signup: {
+    color: '#0095f6',
+    fontWeight: 600,
+    textDecoration: 'none',
+  },
+};
+
+export const inputStyle = {
+  width: '100%',
+  boxSizing: 'border-box',
+  padding: '11px 12px',
+  fontSize: 14,
+  lineHeight: 1.2,
+  color: '#262626',
+  background: '#fafafa',
+  border: '1px solid #dbdbdb',
+  borderRadius: 6,
+  outline: 'none',
+  display: 'block',
+  transition: 'border-color 0.15s, background 0.15s',
+};
+
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focused, setFocused] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!identifier || !password) {
+
+    if (!identifier.trim() || !password) {
       setError('Please fill in all fields');
       return;
     }
+
     setLoading(true);
     try {
       const data = await api.post('/auth/login', {
         identifier: identifier.trim(),
-        password
+        password,
       });
       login(data);
       router.push('/feed');
@@ -39,75 +158,75 @@ export default function LoginPage() {
   };
 
   return (
-    <>
-      {/* Logo — matching legacy: 150x150 image + 52px Dancing Script */}
-      <div className="text-center flex flex-col items-center gap-0 mb-1">
-        <Image
-          src="/logo.png"
-          alt="SyncSphere"
-          width={150}
-          height={150}
-          className="object-contain"
-          style={{ mixBlendMode: 'multiply' }}
-          priority
-        />
-        <h1
-          className="text-[52px] font-bold bg-auth-gradient leading-tight mb-2"
-          style={{ fontFamily: 'var(--font-dancing), "Dancing Script", cursive' }}
-        >
-          SyncSphere
-        </h1>
-      </div>
-
-      {/* Login Card — matching legacy auth-card */}
-      <div className="bg-surface border border-border rounded-[8px] px-10 pt-8 pb-6 mb-4">
-        <p className="text-center text-[16px] font-semibold mb-4 font-[family-name:var(--font-playfair)] leading-[1.4]">
-          Sign in to see photos from your friends.
-        </p>
-
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="Email or Username"
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            autoComplete="off"
-            className="w-full px-3 py-2.5 border border-border rounded-[6px] text-[13px] bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white mb-3 block"
+    <main style={styles.page}>
+      <div style={styles.container}>
+        {/* Logo */}
+        <div style={styles.logoWrap}>
+          <Image
+            src="/logo.png"
+            alt="SyncSphere"
+            width={120}
+            height={120}
+            style={{ objectFit: 'contain', mixBlendMode: 'multiply' }}
+            priority
           />
-          <PasswordInput
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)}
-          />
+          <h1 style={styles.brand}>SyncSphere</h1>
+        </div>
 
-          {error && (
-            <p className="text-danger text-xs text-center mt-1.5 min-h-4">{error}</p>
-          )}
+        {/* Login card */}
+        <div style={styles.card}>
+          <p style={styles.heading}>Sign in to see photos from your friends.</p>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-[10px] rounded-[8px] text-[14px] font-semibold cursor-pointer mt-4 transition-opacity hover:opacity-85 disabled:opacity-60"
-            style={{ background: '#0095f6', color: '#ffffff', border: 'none' }}
-          >
-            {loading ? 'Logging in...' : 'Log In'}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} style={styles.form} noValidate>
+            <input
+              type="text"
+              placeholder="Email or Username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              autoComplete="username"
+              style={{
+                ...inputStyle,
+                ...(focused ? { borderColor: '#a8a8a8', background: '#fff' } : {}),
+              }}
+            />
 
-        <div className="text-center mt-4">
-          <Link href="/forgot" className="text-[13px] text-accent font-semibold cursor-pointer hover:underline">
-            Forgot password?
+            <PasswordInput
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+
+            {error && <p style={styles.error}>{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                ...styles.button,
+                opacity: loading ? 0.6 : 1,
+                cursor: loading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {loading ? 'Logging in...' : 'Log In'}
+            </button>
+          </form>
+
+          <div style={styles.forgotWrap}>
+            <Link href="/forgot" style={styles.forgot}>
+              Forgot password?
+            </Link>
+          </div>
+        </div>
+
+        {/* Switch to register */}
+        <div style={styles.switchCard}>
+          Don&apos;t have an account?{' '}
+          <Link href="/register" style={styles.signup}>
+            Sign up
           </Link>
         </div>
       </div>
-
-      {/* Switch to Register — matching legacy auth-switch */}
-      <div className="bg-surface border border-border rounded-[8px] py-4 text-center text-[14px] text-muted">
-        Don&apos;t have an account?{' '}
-        <Link href="/register" className="text-accent font-semibold cursor-pointer hover:underline">
-          Sign up
-        </Link>
-      </div>
-    </>
+    </main>
   );
 }

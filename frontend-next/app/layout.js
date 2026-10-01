@@ -32,7 +32,7 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${dmSans.variable} ${dancingScript.variable} ${playfairDisplay.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-[family-name:var(--font-dm-sans)]">
+      <body className="h-full min-h-dvh w-full bg-background flex justify-center items-start font-[family-name:var(--font-dm-sans)] overflow-hidden">
         <AuthProvider>
           <ToastProvider>
             {children}

@@ -127,37 +127,21 @@ export default function ChatPage() {
   );
 
   return (
-    <div className="h-full w-full flex flex-col md:flex-row overflow-hidden bg-surface">
-      {/* Thread list panel: Full width on mobile when no chat selected, fixed width column on desktop */}
-      <div className={`h-full w-full md:w-80 lg:w-96 flex-shrink-0 ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
+    <div className="h-full w-full flex flex-col overflow-hidden bg-surface">
+      {/* Thread list panel */}
+      <div className={`h-full w-full flex-col flex-shrink-0 ${selectedChat ? 'hidden' : 'flex'}`}>
         {renderThreadsList()}
       </div>
 
-      {/* Chat Window panel: Full width on mobile when chat selected, flex-1 on desktop */}
-      <div className={`h-full flex-1 min-w-0 ${selectedChat ? 'flex' : 'hidden md:flex'}`}>
-        {selectedChat ? (
+      {/* Chat Window panel */}
+      <div className={`h-full w-full flex-col flex-1 min-w-0 ${selectedChat ? 'flex' : 'hidden'}`}>
+        {selectedChat && (
           <ChatWindow
             partnerId={selectedChat.userId}
             partnerName={selectedChat.username}
             partnerUser={selectedChat.user}
             onBack={() => { setSelectedChat(null); loadThreads(); }}
           />
-        ) : (
-          <div className="hidden md:flex flex-col items-center justify-center h-full w-full text-center p-8 text-muted bg-surface">
-            <div className="w-20 h-20 rounded-full bg-surface2 flex items-center justify-center mb-4 border border-border">
-              <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-accent">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-text mb-1">Your Messages</h3>
-            <p className="text-sm max-w-xs">Send private messages and video calls to a friend or group.</p>
-            <button
-              onClick={() => setShowNewChat(true)}
-              className="mt-5 px-5 py-2.5 bg-accent text-white font-semibold text-sm rounded-xl border-none cursor-pointer shadow-md hover:opacity-90 transition-opacity"
-            >
-              Send Message
-            </button>
-          </div>
         )}
       </div>
 

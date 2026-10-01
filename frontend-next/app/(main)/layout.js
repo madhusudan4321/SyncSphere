@@ -36,8 +36,8 @@ export default function MainLayout({ children }) {
   return (
     <SocketProvider>
       <CallProvider>
-        {/* App Shell — exactly like legacy: centered 480px container */}
-        <div className="w-full max-w-[480px] mx-auto h-dvh flex flex-col bg-surface relative shadow-[0_0_40px_rgba(0,0,0,0.08)]">
+        {/* App Shell — exactly like legacy #app-shell: centered 480px container */}
+        <div className="w-full max-w-[480px] h-dvh flex flex-col bg-surface relative shadow-[0_0_40px_rgba(0,0,0,0.08)] overflow-hidden">
           {/* Top Nav */}
           <header className="bg-surface border-b border-border px-4 h-[54px] flex items-center justify-center flex-shrink-0 z-10">
             <div className="flex items-center gap-1">

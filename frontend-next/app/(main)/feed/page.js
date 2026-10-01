@@ -67,7 +67,7 @@ export default function FeedPage() {
 
   return (
     <div ref={containerRef} className="w-full h-full overflow-y-auto">
-      <div className="max-w-[480px] mx-auto pb-4">
+      <div className="w-full pb-4">
         {/* Stories */}
         <StoryBar />
 

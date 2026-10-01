@@ -53,7 +53,7 @@ export default function ChatPage() {
     <div className="flex flex-col h-full bg-surface border-r border-border">
       {/* Header */}
       <div className="px-4 py-3.5 border-b border-border flex items-center justify-between flex-shrink-0">
-        <h2 className="text-lg font-bold">Messages</h2>
+        <h2 className="text-[18px] font-bold">{user?.username || 'Messages'}</h2>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowCallHistory(true)}
@@ -69,9 +69,10 @@ export default function ChatPage() {
             className="bg-transparent border-none cursor-pointer text-text hover:text-accent p-1 transition-colors"
             title="New Chat"
           >
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="10" y1="11" x2="14" y2="11"/>
             </svg>
           </button>
         </div>
@@ -93,8 +94,22 @@ export default function ChatPage() {
           </div>
         ) : (
           threads.map(t => {
-            const partner = t.partner || t.user || {};
+            const partner = t.user || t.partner || {};
+            const lastMsg = t.lastMsg || t.lastMessage || {};
+            const isMine = (lastMsg.from?._id || lastMsg.from) === user?._id;
+            const lastText = lastMsg.text || '';
+            let preview = '';
+            if (lastMsg.type === 'media') {
+              preview = isMine ? 'You: 📎 Attached File' : '📎 Attached File';
+            } else if (lastText) {
+              const sliced = lastText.length > 35 ? lastText.slice(0, 35) + '...' : lastText;
+              preview = isMine ? `You: ${sliced}` : sliced;
+            } else {
+              preview = 'Tap to chat';
+            }
+            const timeStr = lastMsg.createdAt ? timeAgo(lastMsg.createdAt) : (t.lastMessageAt ? timeAgo(t.lastMessageAt) : '');
             const isSelected = selectedChat?.userId === partner._id;
+
             return (
               <div
                 key={t._id || partner._id}
@@ -104,20 +119,18 @@ export default function ChatPage() {
                 }`}
               >
                 <div className="relative">
-                  <Avatar user={partner} size={48} fontSize={15} />
+                  <Avatar user={partner} size={50} fontSize={16} />
                   {t.online && (
                     <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success rounded-full border-2 border-surface" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">{partner.username}</p>
-                  <p className="text-[13px] text-muted truncate">
-                    {t.lastMessage?.type === 'media'
-                      ? '📎 Attached File'
-                      : t.lastMessage?.text || t.lastMessage || 'Tap to chat'}
-                  </p>
+                  <p className="text-[14px] font-semibold text-text">{partner.username}</p>
+                  <p className="text-[13px] text-muted truncate">{preview}</p>
                 </div>
-                <span className="text-[11px] text-muted flex-shrink-0">{t.lastMessageAt ? timeAgo(t.lastMessageAt) : ''}</span>
+                {timeStr && (
+                  <span className="text-[11px] text-muted flex-shrink-0 self-start mt-1">{timeStr}</span>
+                )}
               </div>
             );
           })

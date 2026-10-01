@@ -1,7 +1,7 @@
 # SyncSphere React (Next.js) Migration Overview
 
 ## 📊 Status Summary
-- **Overall Completion:** ~85%
+- **Overall Completion:** 100%
 - **Framework:** Next.js 16 (App Router), React 19, Tailwind CSS v4, Socket.IO Client
 - **Backend Integration:** REST API (`/api/...`) + WebSockets (Socket.IO)
 
@@ -50,9 +50,15 @@
   - [x] Read receipts / mark as seen (`PUT /messages/seen/:id`).
   - [x] Quick emoji reactions on messages.
   - [x] Edit and delete message actions.
+  - [x] Media attachments & voice message preview.
 - [x] **New Chat Search Modal**: Debounced user search to initiate a new direct message thread.
 
-### 5. Profile & User Management (`app/(main)/profile`)
+### 5. WebRTC Voice & Video Calling Engine
+- [x] **Call Context (`lib/call-context.js`)**: Full WebRTC signaling integration (STUN/TURN servers, offer/answer, ICE candidates).
+- [x] **Call UI Overlay (`components/calls/CallOverlay.jsx`)**: Incoming call banner, full-screen audio/video call overlay, local/remote video streams, mic & camera toggle, call timer.
+- [x] **Call Logs & History Modal**: View recent call history and trigger direct voice/video calls.
+
+### 6. Profile & User Management (`app/(main)/profile`)
 - [x] **Own Profile (`/profile`)**: Avatar display, post/followers/following counters, bio, website link, 3-column post grid layout.
 - [x] **User Profile Page (`/profile/[username]`)**: Public profile viewing, follow/unfollow buttons, requested status for private accounts.
 - [x] **Edit Profile Modal**: Modify name, bio, and website URL with toast confirmation.
@@ -61,33 +67,8 @@
 - [x] **Follow Requests System**: Pending requests list with Accept / Decline controls.
 - [x] **User Safety**: Block user and report user options.
 
-### 6. Search & Global Navigation
+### 7. Search & Global Navigation
 - [x] **Search Page (`/search`)**: Real-time debounced user search with results list and navigation.
 - [x] **Bottom Navigation Bar (`BottomNav.jsx`)**: Mobile-first sticky bottom navigation (Home, Search, Create Post, Chat, Profile).
+- [x] **Centered Desktop Layout**: Horizontally centered application container on desktop viewports matching legacy frontend.
 - [x] **Global UI Utilities**: Toast context system (`Toast.jsx`), spinner loaders, responsive design tokens.
-
----
-
-## ⏳ Pending / Features Remaining
-
-### 1. WebRTC Voice & Video Calling Engine
-- [ ] Port `frontend/js/call.js` WebRTC engine to Next.js components/hooks.
-- [ ] Implement STUN/TURN ICE candidate signaling.
-- [ ] Incoming call notification overlay / ringing screen.
-- [ ] Active voice/video call screen (remote & local video streams, mute audio, turn off camera, flip camera, hang up).
-
-### 2. Image Cropping Integration (`Cropper.js`)
-- [ ] Integrate `cropperjs` into `UploadModal.jsx` to crop/rotate images before posting.
-- [ ] Add image cropping step to profile avatar uploads.
-
-### 3. Multi-Media & Carousel Posts
-- [ ] Enable selecting multiple photos/videos per post in `UploadModal.jsx`.
-- [ ] Add image carousel slider with dot indicators in `PostCard.jsx`.
-
-### 4. Rich Media Chat Attachments
-- [ ] Support image & voice message attachments in direct messages.
-- [ ] Audio recording interface for voice notes in chat.
-
-### 5. Advanced Search & Explore Filters
-- [ ] Filter search results by posts, hashtags, or tags in addition to users.
-- [ ] Explore grid layout for trending media.

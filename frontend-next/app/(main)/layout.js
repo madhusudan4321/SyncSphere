@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import BottomNav from '@/components/ui/BottomNav';
 import { SocketProvider } from '@/lib/socket';
@@ -11,6 +11,7 @@ import CallOverlay from '@/components/calls/CallOverlay';
 export default function MainLayout({ children }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -33,19 +34,23 @@ export default function MainLayout({ children }) {
 
   if (!user) return null;
 
+  const hideTopHeader = pathname.startsWith('/chat');
+
   return (
     <SocketProvider>
       <CallProvider>
         {/* App Shell — exactly like legacy #app-shell: centered 480px container */}
         <div className="w-full max-w-[480px] h-dvh flex flex-col bg-surface relative shadow-[0_0_40px_rgba(0,0,0,0.08)] overflow-hidden">
-          {/* Top Nav */}
-          <header className="bg-surface border-b border-border px-4 h-[54px] flex items-center justify-center flex-shrink-0 z-10">
-            <div className="flex items-center gap-1">
-              <span className="font-[family-name:var(--font-dancing)] text-[28px] font-bold bg-logo-gradient">
-                SyncSphere
-              </span>
-            </div>
-          </header>
+          {/* Top Nav — hidden on /chat tab to match legacy frontend */}
+          {!hideTopHeader && (
+            <header className="bg-surface border-b border-border px-4 h-[54px] flex items-center justify-center flex-shrink-0 z-10">
+              <div className="flex items-center gap-1">
+                <span className="font-[family-name:var(--font-dancing)] text-[28px] font-bold bg-logo-gradient">
+                  SyncSphere
+                </span>
+              </div>
+            </header>
+          )}
 
           {/* Content Area */}
           <main className="flex-1 overflow-hidden relative">

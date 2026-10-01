@@ -1,7 +1,8 @@
 // ── Utility Functions ────────────────────────────────────────────────────────
 
-export const BASE_URL = 'https://syncsphere-api.onrender.com/api';
-export const SOCKET_URL = 'https://syncsphere-api.onrender.com';
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+export const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
 
 export function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000;

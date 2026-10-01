@@ -120,6 +120,7 @@ function StoryViewer({ groups, startGroupIdx, onClose }) {
   const [sIdx, setSIdx] = useState(0);
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   const [replyText, setReplyText] = useState('');
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -131,7 +132,7 @@ function StoryViewer({ groups, startGroupIdx, onClose }) {
 
   // Auto-advance timer
   useEffect(() => {
-    if (paused || !story) return;
+    if (paused || showOptions || !story) return;
     const duration = 6000;
     const start = performance.now() - (progress / 100) * duration;
     let rafId;
@@ -147,7 +148,7 @@ function StoryViewer({ groups, startGroupIdx, onClose }) {
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [gIdx, sIdx, paused]);
+  }, [gIdx, sIdx, paused, showOptions]);
 
   // Mark as viewed
   useEffect(() => {
@@ -206,13 +207,16 @@ function StoryViewer({ groups, startGroupIdx, onClose }) {
   // Keyboard controls
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (showOptions) setShowOptions(false);
+        else onClose();
+      }
       if (e.key === 'ArrowRight') nextStory();
       if (e.key === 'ArrowLeft') prevStory();
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [gIdx, sIdx]);
+  }, [gIdx, sIdx, showOptions]);
 
   if (!story) return null;
 
@@ -248,7 +252,7 @@ function StoryViewer({ groups, startGroupIdx, onClose }) {
             )}
           </button>
           {isOwn && (
-            <button onClick={deleteStory} className="bg-transparent border-none cursor-pointer text-white p-1">
+            <button onClick={() => setShowOptions(true)} className="bg-transparent border-none cursor-pointer text-white p-1">
               <svg width="20" height="20" fill="white" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
             </button>
           )}
@@ -297,6 +301,56 @@ function StoryViewer({ groups, startGroupIdx, onClose }) {
           </svg>
         </button>
       </div>
+
+      {/* Story options bottom sheet */}
+      {showOptions && (
+        <div
+          className="fixed inset-0 z-[950] bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setShowOptions(false)}
+        >
+          <div
+            className="w-full max-w-sm bg-[#1c1c1e] text-white rounded-t-3xl sm:rounded-3xl p-4 flex flex-col shadow-2xl overflow-hidden border border-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top pill handle */}
+            <div className="w-10 h-1 bg-white/25 rounded-full mx-auto mb-3 mt-1" />
+
+            {/* Delete Story option */}
+            <button
+              onClick={async () => {
+                setShowOptions(false);
+                await deleteStory();
+              }}
+              className="w-full flex items-center gap-3.5 p-3 rounded-2xl hover:bg-white/5 transition text-left cursor-pointer border-none bg-transparent"
+            >
+              <div className="w-11 h-11 rounded-full bg-red-500/15 flex items-center justify-center text-[#ed4956] flex-shrink-0">
+                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[#ed4956] font-semibold text-base">Delete Story</span>
+                <span className="text-white/50 text-xs mt-0.5">This cannot be undone</span>
+              </div>
+            </button>
+
+            {/* Separator line */}
+            <div className="w-full h-[1px] bg-white/10 my-2" />
+
+            {/* Cancel option */}
+            <button
+              onClick={() => setShowOptions(false)}
+              className="w-full text-center py-3 text-white font-semibold text-base cursor-pointer hover:bg-white/5 rounded-2xl transition border-none bg-transparent"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

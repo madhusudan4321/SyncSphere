@@ -281,6 +281,7 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
 
   const messagesEndRef = useRef(null);
   const typingTimerRef = useRef(null);
@@ -416,6 +417,15 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
     }
   };
 
+  // Open file input with specified accept filter
+  const openFileInput = (acceptType) => {
+    setShowAttachMenu(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = acceptType;
+      fileInputRef.current.click();
+    }
+  };
+
   // Voice recorder handlers
   const startVoiceRecording = async () => {
     try {
@@ -487,7 +497,7 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
           </p>
         </div>
 
-        {/* Action Buttons: Voice Call, Video Call, Media Gallery */}
+        {/* Action Buttons: Voice Call, Video Call */}
         <div className="flex items-center gap-2">
           {/* Voice Call */}
           <button
@@ -509,19 +519,6 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M23 7l-7 5 7 5V7z" />
               <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-            </svg>
-          </button>
-
-          {/* Media Gallery */}
-          <button
-            onClick={() => setShowMediaGallery(true)}
-            className="w-8 h-8 rounded-full bg-surface2 flex items-center justify-center cursor-pointer text-text hover:text-accent transition-colors"
-            title="Shared Media"
-          >
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21,15 16,10 5,21" />
             </svg>
           </button>
         </div>
@@ -585,16 +582,75 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
           accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.zip"
         />
 
-        {/* Media Upload Button */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="w-9 h-9 rounded-full bg-surface2 flex items-center justify-center text-text hover:text-accent cursor-pointer transition-colors flex-shrink-0"
-          title="Attach File"
-        >
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
-          </svg>
-        </button>
+        {/* Attachment Options Menu & Toggle Button */}
+        <div className="relative flex-shrink-0">
+          <button
+            onClick={() => setShowAttachMenu(!showAttachMenu)}
+            className={`w-9 h-9 rounded-full bg-surface2 flex items-center justify-center text-text hover:text-accent cursor-pointer transition-colors ${showAttachMenu ? 'text-accent bg-border/40' : ''}`}
+            title="Attach File"
+          >
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+            </svg>
+          </button>
+
+          {showAttachMenu && (
+            <>
+              {/* Invisible Backdrop to close menu */}
+              <div
+                className="fixed inset-0 z-40 bg-transparent"
+                onClick={() => setShowAttachMenu(false)}
+              />
+              {/* Popover options menu */}
+              <div className="absolute bottom-12 left-0 z-50 bg-surface border border-border shadow-xl rounded-2xl p-1.5 flex flex-col min-w-[160px] animate-slide-up">
+                {/* Documents */}
+                <button
+                  onClick={() => openFileInput('.pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx,.zip,application/*,text/*')}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface2 transition-colors cursor-pointer border-none bg-transparent text-left w-full"
+                >
+                  <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center flex-shrink-0">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                      <polyline points="14,2 14,8 20,8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-semibold text-text">Documents</span>
+                </button>
+
+                {/* Photos */}
+                <button
+                  onClick={() => openFileInput('image/*')}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface2 transition-colors cursor-pointer border-none bg-transparent text-left w-full"
+                >
+                  <div className="w-8 h-8 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center flex-shrink-0">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <polyline points="21,15 16,10 5,21" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-semibold text-text">Photos</span>
+                </button>
+
+                {/* Videos */}
+                <button
+                  onClick={() => openFileInput('video/*')}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface2 transition-colors cursor-pointer border-none bg-transparent text-left w-full"
+                >
+                  <div className="w-8 h-8 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center flex-shrink-0">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path d="M23 7l-7 5 7 5V7z" />
+                      <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                    </svg>
+                  </div>
+                  <span className="text-sm font-semibold text-text">Videos</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Voice Note Recorder or Text Input */}
         {recording ? (

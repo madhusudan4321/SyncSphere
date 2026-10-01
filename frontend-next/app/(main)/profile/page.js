@@ -174,7 +174,7 @@ export default function ProfilePage() {
           </button>
           <button
             onClick={togglePrivacy}
-            className="flex-1 py-[7px] bg-surface2 border border-border rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-border transition-colors text-text"
+            className="flex-1 py-[7px] bg-black text-white border border-black rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-neutral-800 transition-colors shadow-sm"
           >
             {p.isPrivate ? 'Private' : 'Public'}
           </button>

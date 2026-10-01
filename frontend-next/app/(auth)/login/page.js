@@ -39,61 +39,82 @@ export default function LoginPage() {
   };
 
   return (
-    <>
-      {/* Logo */}
-      <div className="text-center mb-1 flex flex-col items-center gap-0">
-        <Image src="/logo.png" alt="SyncSphere" width={60} height={60} className="mx-auto" />
-        <h1 className="font-[family-name:var(--font-dancing)] text-[52px] font-bold bg-auth-gradient">
+    <div className="w-full flex flex-col justify-center py-2">
+      {/* Header Branding */}
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-surface2/60 border border-border/50 mb-3 shadow-sm">
+          <Image src="/logo.png" alt="SyncSphere" width={52} height={52} className="object-contain" priority />
+        </div>
+        <h1 className="font-[family-name:var(--font-dancing)] text-5xl font-bold bg-logo-gradient mb-1">
           SyncSphere
         </h1>
+        <p className="text-sm text-muted font-medium">
+          Welcome back! Please enter your details.
+        </p>
       </div>
 
-      {/* Login Card */}
-      <div className="bg-surface border border-border rounded-md px-8 py-7 mb-2.5">
-        <p className="text-center text-base font-semibold mb-4 font-[family-name:var(--font-playfair)] leading-snug">
-          Sign in to see photos and videos from your friends
-        </p>
-
-        <form onSubmit={handleSubmit}>
+      {/* Login Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-text uppercase tracking-wider mb-1.5">
+            Username or Email
+          </label>
           <input
             type="text"
-            placeholder="Username or email"
+            placeholder="e.g. alex or alex@example.com"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            className="w-full px-3 py-2.5 border border-border rounded-md text-[13px] bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white mb-2"
+            className="w-full px-4 py-3 border border-border rounded-xl text-sm bg-surface2/40 outline-none text-text transition-all focus:border-accent focus:bg-surface focus:ring-2 focus:ring-accent/20"
           />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-semibold text-text uppercase tracking-wider">
+              Password
+            </label>
+            <Link href="/forgot" className="text-xs text-accent font-semibold hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)}
           />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-accent text-white border-none rounded-lg text-sm font-semibold cursor-pointer mt-2 transition-opacity hover:opacity-85 disabled:opacity-60"
-          >
-            {loading ? 'Logging in...' : 'Log In'}
-          </button>
-        </form>
+        </div>
 
         {error && (
-          <p className="text-danger text-xs text-center mt-1.5 min-h-4">{error}</p>
+          <div className="p-3 rounded-lg bg-danger/10 border border-danger/20 text-danger text-xs text-center font-medium animate-shake">
+            {error}
+          </div>
         )}
 
-        <div className="text-center mt-4">
-          <Link href="/forgot" className="text-xs text-accent font-medium hover:underline">
-            Forgot password?
-          </Link>
-        </div>
-      </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white border-none rounded-xl text-sm font-bold cursor-pointer transition-all shadow-md hover:shadow-lg hover:brightness-110 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {loading ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            'Sign In'
+          )}
+        </button>
+      </form>
 
-      {/* Switch to Register */}
-      <div className="bg-surface border border-border rounded-md py-3.5 text-center text-[13px] text-muted">
-        Don&apos;t have an account?{' '}
-        <Link href="/register" className="text-accent font-semibold cursor-pointer hover:underline">
-          Sign up
-        </Link>
+      {/* Footer Switch */}
+      <div className="mt-8 text-center pt-5 border-t border-border/60">
+        <p className="text-sm text-muted">
+          Don&apos;t have an account?{' '}
+          <Link href="/register" className="text-accent font-bold hover:underline ml-1">
+            Sign up now
+          </Link>
+        </p>
       </div>
-    </>
+    </div>
   );
 }

@@ -49,19 +49,8 @@ export default function ChatPage() {
     setSelectedChat({ userId, username, user: userObj });
   };
 
-  if (selectedChat) {
-    return (
-      <ChatWindow
-        partnerId={selectedChat.userId}
-        partnerName={selectedChat.username}
-        partnerUser={selectedChat.user}
-        onBack={() => { setSelectedChat(null); loadThreads(); }}
-      />
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-full bg-surface">
+  const renderThreadsList = () => (
+    <div className="flex flex-col h-full bg-surface border-r border-border">
       {/* Header */}
       <div className="px-4 py-3.5 border-b border-border flex items-center justify-between flex-shrink-0">
         <h2 className="text-lg font-bold">Messages</h2>
@@ -105,14 +94,17 @@ export default function ChatPage() {
         ) : (
           threads.map(t => {
             const partner = t.partner || t.user || {};
+            const isSelected = selectedChat?.userId === partner._id;
             return (
               <div
                 key={t._id || partner._id}
                 onClick={() => openChat(partner._id, partner.username, partner)}
-                className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface2 transition-colors border-b border-border/40"
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-border/40 ${
+                  isSelected ? 'bg-accent/10 border-l-4 border-l-accent' : 'hover:bg-surface2'
+                }`}
               >
                 <div className="relative">
-                  <Avatar user={partner} size={50} fontSize={16} />
+                  <Avatar user={partner} size={48} fontSize={15} />
                   {t.online && (
                     <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success rounded-full border-2 border-surface" />
                   )}
@@ -129,6 +121,43 @@ export default function ChatPage() {
               </div>
             );
           })
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="h-full w-full flex flex-col md:flex-row overflow-hidden bg-surface">
+      {/* Thread list panel: Full width on mobile when no chat selected, fixed width column on desktop */}
+      <div className={`h-full w-full md:w-80 lg:w-96 flex-shrink-0 ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
+        {renderThreadsList()}
+      </div>
+
+      {/* Chat Window panel: Full width on mobile when chat selected, flex-1 on desktop */}
+      <div className={`h-full flex-1 min-w-0 ${selectedChat ? 'flex' : 'hidden md:flex'}`}>
+        {selectedChat ? (
+          <ChatWindow
+            partnerId={selectedChat.userId}
+            partnerName={selectedChat.username}
+            partnerUser={selectedChat.user}
+            onBack={() => { setSelectedChat(null); loadThreads(); }}
+          />
+        ) : (
+          <div className="hidden md:flex flex-col items-center justify-center h-full w-full text-center p-8 text-muted bg-surface">
+            <div className="w-20 h-20 rounded-full bg-surface2 flex items-center justify-center mb-4 border border-border">
+              <svg width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-accent">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-text mb-1">Your Messages</h3>
+            <p className="text-sm max-w-xs">Send private messages and video calls to a friend or group.</p>
+            <button
+              onClick={() => setShowNewChat(true)}
+              className="mt-5 px-5 py-2.5 bg-accent text-white font-semibold text-sm rounded-xl border-none cursor-pointer shadow-md hover:opacity-90 transition-opacity"
+            >
+              Send Message
+            </button>
+          </div>
         )}
       </div>
 

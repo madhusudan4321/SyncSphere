@@ -17,6 +17,7 @@ const server = http.createServer(app);
 // ── Allowed origins ───────────────────────────────────────────
 const allowedOrigins = [
   'https://syncsphere-frontend.onrender.com',
+  'https://syncsphere-frontend-next.vercel.app',
   'http://localhost:5500',
   'http://127.0.0.1:5500',
   'http://localhost:3000',
@@ -445,4 +446,4 @@ io.on('connection', async (socket) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

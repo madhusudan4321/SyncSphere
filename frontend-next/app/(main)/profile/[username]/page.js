@@ -5,11 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import Avatar from '@/components/ui/Avatar';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useCall } from '@/lib/call-context';
 import { useToast } from '@/components/ui/Toast';
 
 export default function UserProfilePage() {
   const { username } = useParams();
   const { user } = useAuth();
+  const { startCall } = useCall();
   const { showToast } = useToast();
   const router = useRouter();
   const [profile, setProfile] = useState(null);
@@ -168,6 +170,20 @@ export default function UserProfilePage() {
             className="flex-1 py-2 bg-surface2 border border-border rounded-lg text-sm font-semibold cursor-pointer hover:bg-border transition-colors"
           >
             Message
+          </button>
+          <button
+            onClick={() => startCall(profile, 'voice')}
+            className="px-3 py-2 bg-surface2 border border-border rounded-lg text-sm font-semibold cursor-pointer hover:bg-border transition-colors text-text"
+            title="Voice Call"
+          >
+            📞
+          </button>
+          <button
+            onClick={() => startCall(profile, 'video')}
+            className="px-3 py-2 bg-surface2 border border-border rounded-lg text-sm font-semibold cursor-pointer hover:bg-border transition-colors text-text"
+            title="Video Call"
+          >
+            📹
           </button>
         </div>
       </div>

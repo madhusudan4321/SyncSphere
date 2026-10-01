@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Avatar from '@/components/ui/Avatar';
 import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast';
@@ -185,7 +185,7 @@ function CommentsSection({ postId }) {
     finally { setLoading(false); }
   };
 
-  useState(() => { load(); });
+  useEffect(() => { load(); }, []);
 
   const submit = async () => {
     if (!text.trim()) return;

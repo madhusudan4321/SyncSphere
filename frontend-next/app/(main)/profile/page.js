@@ -197,7 +197,7 @@ export default function ProfilePage() {
               cursor: 'pointer',
             }}
           >
-            {p.isPrivate ? '🔒 Private' : '🌐 Public'}
+            {p.isPrivate ? 'Private' : 'Public'}
           </button>
         </div>
       </div>

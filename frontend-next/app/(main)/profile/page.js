@@ -165,18 +165,39 @@ export default function ProfilePage() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-1.5 w-full">
+        <div style={{ display: 'flex', gap: 8, width: '100%' }}>
           <button
             onClick={() => setShowEditModal(true)}
-            className="flex-1 py-[7px] bg-surface2 border border-border rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-border transition-colors text-text"
+            style={{
+              flex: 1,
+              padding: '8px 0',
+              background: '#efefef',
+              color: '#262626',
+              border: '1px solid #dbdbdb',
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
           >
             Edit Profile
           </button>
+
           <button
             onClick={togglePrivacy}
-            className="flex-1 py-[7px] bg-black text-white border border-black rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-neutral-800 transition-colors shadow-sm"
+            style={{
+              flex: 1,
+              padding: '8px 0',
+              background: '#000000',
+              color: '#ffffff',
+              border: '1px solid #000000',
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
           >
-            {p.isPrivate ? 'Private' : 'Public'}
+            {p.isPrivate ? '🔒 Private' : '🌐 Public'}
           </button>
         </div>
       </div>

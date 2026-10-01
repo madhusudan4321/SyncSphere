@@ -10,18 +10,10 @@ import api from '@/lib/api';
 
 const styles = {
   page: {
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '32px 16px',
-    background: '#fafafa',
-    boxSizing: 'border-box',
+    width: '100%',
   },
   container: {
     width: '100%',
-    maxWidth: 380,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'stretch',
@@ -48,7 +40,7 @@ const styles = {
     background: '#ffffff',
     border: '1px solid #dbdbdb',
     borderRadius: 8,
-    padding: '32px 40px 24px',
+    padding: '28px 24px 20px',
     marginBottom: 12,
     boxSizing: 'border-box',
   },
@@ -82,10 +74,12 @@ const styles = {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: 600,
-    cursor: 'pointer',
     transition: 'opacity 0.15s',
   },
-  forgotWrap: { textAlign: 'center', marginTop: 20 },
+  forgotWrap: {
+    textAlign: 'center',
+    marginTop: 20,
+  },
   forgot: {
     fontSize: 13,
     fontWeight: 600,
@@ -109,7 +103,7 @@ const styles = {
   },
 };
 
-export const inputStyle = {
+const inputStyle = {
   width: '100%',
   boxSizing: 'border-box',
   padding: '11px 12px',
@@ -158,7 +152,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main style={styles.page}>
+    <div style={styles.page}>
       <div style={styles.container}>
         {/* Logo */}
         <div style={styles.logoWrap}>
@@ -227,6 +221,6 @@ export default function LoginPage() {
           </Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

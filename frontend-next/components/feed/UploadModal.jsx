@@ -48,38 +48,33 @@ export default function UploadModal({ isOpen, onClose, onPostCreated }) {
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
-        <button onClick={handleClose} className="text-text bg-transparent border-none cursor-pointer text-sm font-semibold">Cancel</button>
-        <h3 className="text-base font-bold">New Post</h3>
-        <button
-          onClick={handleSubmit}
-          disabled={uploading || !file}
-          className="text-accent bg-transparent border-none cursor-pointer text-sm font-semibold disabled:opacity-50"
-        >
-          {uploading ? 'Posting...' : 'Share'}
-        </button>
+      {/* Header — matching legacy modal-header */}
+      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border sticky top-0 bg-surface flex-shrink-0">
+        <h3 className="text-[15px] font-semibold">New Post</h3>
+        <button onClick={handleClose} className="bg-transparent border-none text-[26px] cursor-pointer text-text leading-none">×</button>
       </div>
 
-      {/* Content */}
-      <div className="p-4 flex flex-col gap-4 overflow-y-auto flex-1">
+      {/* Content — matching legacy upload-area */}
+      <div className="p-5">
         {preview ? (
-          <div className="relative">
-            <img src={preview} alt="Preview" className="w-full rounded-lg max-h-80 object-contain bg-surface2" />
-            <button
-              onClick={() => { setFile(null); setPreview(null); }}
-              className="absolute top-2 right-2 bg-black/60 text-white border-none rounded-full w-7 h-7 flex items-center justify-center cursor-pointer text-sm"
-            >×</button>
-          </div>
+          <img
+            src={preview}
+            alt="Preview"
+            className="w-full h-[220px] object-cover rounded-[8px] mb-3 block"
+          />
         ) : (
           <div
             onClick={() => fileRef.current?.click()}
-            className="border-2 border-dashed border-border rounded-xl py-16 flex flex-col items-center gap-3 cursor-pointer hover:border-accent transition-colors"
+            className="border-2 border-dashed border-border rounded-[12px] py-8 px-5 cursor-pointer text-center transition-colors hover:border-accent hover:bg-[#f5faff] relative"
           >
-            <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-muted">
-              <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21,15 16,10 5,21" />
-            </svg>
-            <p className="text-muted text-sm">Tap to select a photo</p>
+            <div className="flex justify-center mb-2.5">
+              <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-muted">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+            </div>
+            <p className="font-semibold">Drag photo here</p>
+            <p className="text-muted mt-1">or click to browse</p>
           </div>
         )}
 
@@ -88,9 +83,16 @@ export default function UploadModal({ isOpen, onClose, onPostCreated }) {
           onChange={(e) => setCaption(e.target.value)}
           placeholder="Write a caption..."
           maxLength={2200}
-          rows={3}
-          className="w-full border border-border rounded-lg p-3 text-sm outline-none resize-none bg-surface2 text-text placeholder:text-muted"
+          className="w-full border border-border rounded-[8px] p-2.5 text-[13px] outline-none resize-none text-text h-20 mt-3 block focus:border-accent"
         />
+
+        <button
+          onClick={handleSubmit}
+          disabled={uploading || !file}
+          className="w-full py-2.5 bg-accent text-white border-none rounded-[8px] text-[14px] font-semibold cursor-pointer mt-2.5 disabled:opacity-60"
+        >
+          {uploading ? 'Posting...' : 'Share Post'}
+        </button>
       </div>
 
       <input

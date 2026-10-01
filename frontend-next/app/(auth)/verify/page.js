@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
@@ -19,14 +20,12 @@ export default function VerifyPage() {
 
   const email = typeof window !== 'undefined' ? sessionStorage.getItem('verify_email') || '' : '';
 
-  // Cooldown timer
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setInterval(() => setCooldown(c => c - 1), 1000);
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  // Redirect if no email
   useEffect(() => {
     if (typeof window !== 'undefined' && !sessionStorage.getItem('verify_email')) {
       router.push('/register');
@@ -42,7 +41,6 @@ export default function VerifyPage() {
     if (value && idx < 5) {
       inputRefs.current[idx + 1]?.focus();
     }
-    // Auto-submit
     if (next.every(d => d !== '')) {
       handleVerify(next.join(''));
     }
@@ -90,22 +88,39 @@ export default function VerifyPage() {
 
   return (
     <>
-      <div className="text-center mb-1 flex flex-col items-center gap-0">
-        <Image src="/logo.png" alt="SyncSphere" width={80} height={80} className="mx-auto" priority />
-        <h1 className="font-[family-name:var(--font-dancing)] text-[52px] font-bold bg-auth-gradient">
+      <div className="text-center flex flex-col items-center gap-0 mb-1">
+        <Image
+          src="/logo.png"
+          alt="SyncSphere"
+          width={150}
+          height={150}
+          className="object-contain"
+          style={{ mixBlendMode: 'multiply' }}
+          priority
+        />
+        <h1 className="font-[family-name:var(--font-dancing)] text-[52px] font-bold bg-auth-gradient leading-tight mb-2">
           SyncSphere
         </h1>
       </div>
 
-      <div className="bg-surface border border-border rounded-md px-8 py-7 mb-2.5">
-        <h2 className="text-center text-lg font-bold mb-2">Verify Email</h2>
-        <p className="text-center text-[13px] text-muted mb-6">
-          Enter the 6-digit code sent to<br />
-          <span className="font-semibold text-text">{email}</span>
-        </p>
+      <div className="bg-surface border border-border rounded-[4px] px-8 pt-7 pb-5 mb-2.5">
+        <div className="text-center mb-5">
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0095f6] to-[#00d4ff] flex items-center justify-center mx-auto mb-3.5">
+            <svg width="28" height="28" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+          </div>
+          <p className="text-[16px] font-semibold font-[family-name:var(--font-playfair)] leading-[1.4] m-0">
+            Verify your email
+          </p>
+          <p className="text-[13px] text-muted mt-1.5">
+            We sent a 6-digit code to<br />
+            <strong>{email}</strong>
+          </p>
+        </div>
 
-        {/* OTP Inputs */}
-        <div className="flex gap-2 justify-center mb-4">
+        <div className="flex gap-2.5 justify-center my-5 mb-2">
           {otp.map((digit, i) => (
             <input
               key={i}
@@ -116,32 +131,40 @@ export default function VerifyPage() {
               value={digit}
               onChange={(e) => handleChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
-              className="w-11 h-12 text-center text-xl font-bold border-2 border-border rounded-lg outline-none focus:border-accent transition-colors bg-[#fafafa]"
+              className="w-[46px] h-[54px] rounded-[12px] border-2 border-border bg-surface2 text-text text-[22px] font-bold text-center outline-none transition-all focus:border-accent focus:shadow-[0_0_0_3px_rgba(0,149,246,0.15)] focus:scale-[1.06]"
+              style={{ caretColor: 'var(--color-accent)' }}
             />
           ))}
         </div>
 
         {error && (
-          <p className="text-danger text-xs text-center mb-3 animate-shake">{error}</p>
+          <p className="text-danger text-xs text-center mt-1.5 mb-0 animate-shake">{error}</p>
         )}
 
         <button
           onClick={() => handleVerify()}
           disabled={loading || otp.some(d => d === '')}
-          className="w-full py-2.5 bg-accent text-white border-none rounded-lg text-sm font-semibold cursor-pointer transition-opacity hover:opacity-85 disabled:opacity-60"
+          className="w-full py-[9px] bg-accent text-white border-none rounded-[8px] text-[14px] font-semibold cursor-pointer mt-2 transition-opacity hover:opacity-85 disabled:opacity-60"
         >
-          {loading ? 'Verifying...' : 'Verify'}
+          {loading ? 'Verifying...' : 'Verify Email'}
         </button>
 
-        <div className="text-center mt-4">
-          <button
-            onClick={handleResend}
-            disabled={cooldown > 0}
-            className="text-xs text-accent font-medium hover:underline disabled:text-muted disabled:no-underline cursor-pointer bg-transparent border-none"
-          >
-            {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend OTP'}
-          </button>
-        </div>
+        <p className="text-center text-[13px] text-muted mt-3.5">
+          Didn&apos;t receive it?{' '}
+          {cooldown > 0 ? (
+            <span className="text-muted">Resend in {cooldown}s</span>
+          ) : (
+            <span onClick={handleResend} className="text-accent cursor-pointer font-semibold">
+              Resend OTP
+            </span>
+          )}
+        </p>
+      </div>
+
+      <div className="bg-surface border border-border rounded-[4px] py-3.5 text-center text-[13px] text-muted">
+        <Link href="/register" className="text-accent font-semibold cursor-pointer hover:underline">
+          ← Back to Sign Up
+        </Link>
       </div>
     </>
   );

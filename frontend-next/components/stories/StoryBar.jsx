@@ -55,11 +55,11 @@ export default function StoryBar() {
 
   return (
     <>
-      <div className="flex gap-3.5 px-4 py-3 pb-2.5 overflow-x-auto border-b border-border scrollbar-none">
+      <div className="flex gap-[14px] pt-[14px] px-4 pb-[10px] overflow-x-auto border-b border-border" style={{ scrollbarWidth: 'none' }}>
         {/* Own story bubble */}
         <div
           onClick={hasMyStory ? () => openViewer(myGroupIdx) : handleUpload}
-          className="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0"
+          className="flex flex-col items-center gap-[5px] cursor-pointer flex-shrink-0"
         >
           <div
             className={`w-[58px] h-[58px] rounded-full p-[2px] ${hasMyStory ? 'bg-instagram-gradient' : 'border-2 border-dashed border-border bg-surface2'}`}
@@ -86,7 +86,7 @@ export default function StoryBar() {
           if (group.user?._id === user?._id) return null;
           const allViewed = group.stories.every(s => s.viewed);
           return (
-            <div key={group.user?._id || gIdx} onClick={() => openViewer(gIdx)} className="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0">
+            <div key={group.user?._id || gIdx} onClick={() => openViewer(gIdx)} className="flex flex-col items-center gap-[5px] cursor-pointer flex-shrink-0">
               <div className={`w-[58px] h-[58px] rounded-full p-[2px] ${allViewed ? 'bg-border' : 'bg-instagram-gradient'}`}>
                 <div className="w-full h-full rounded-full bg-surface border-[2.5px] border-surface flex items-center justify-center overflow-hidden">
                   {group.user?.avatar ? (

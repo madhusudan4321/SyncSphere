@@ -63,7 +63,7 @@ export default function PostCard({ post, onDelete, onUpdate }) {
   return (
     <div className="bg-surface border-b border-border">
       {/* Header */}
-      <div className="flex items-center gap-2.5 px-3.5 py-2.5">
+      <div className="flex items-center gap-[10px] px-[14px] py-[10px]">
         <Avatar user={post.user} size={34} fontSize={12} className="cursor-pointer" />
         <span className="text-[13px] font-semibold cursor-pointer flex-1">{post.user?.username}</span>
         <button onClick={() => setShowMenu(!showMenu)} className="bg-transparent border-none cursor-pointer text-text p-1">
@@ -108,7 +108,7 @@ export default function PostCard({ post, onDelete, onUpdate }) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-3.5 px-3.5 pt-2.5 pb-1.5">
+      <div className="flex items-center gap-[14px] px-[14px] pt-[10px] pb-[6px]">
         <button onClick={toggleLike} className="bg-transparent border-none cursor-pointer p-0">
           <svg width="24" height="24" fill={liked ? '#ed4956' : 'none'} stroke={liked ? '#ed4956' : 'currentColor'} strokeWidth="2" viewBox="0 0 24 24">
             <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
@@ -133,11 +133,11 @@ export default function PostCard({ post, onDelete, onUpdate }) {
 
       {/* Likes */}
       {likeCount > 0 && (
-        <p className="px-3.5 pb-1 text-[13px] font-semibold">{likeCount} {likeCount === 1 ? 'like' : 'likes'}</p>
+        <p className="px-[14px] pb-1 text-[13px] font-semibold">{likeCount} {likeCount === 1 ? 'like' : 'likes'}</p>
       )}
 
       {/* Caption */}
-      <div className="px-3.5 pb-2 text-[13px] leading-relaxed">
+      <div className="px-[14px] pb-2 text-[13px] leading-[1.5]">
         {editingCaption ? (
           <div className="flex gap-2 items-end">
             <textarea value={caption} onChange={e => setCaption(e.target.value)} className="flex-1 border border-border rounded-lg p-2 text-[13px] outline-none resize-none bg-surface2 text-text" rows={2} />
@@ -151,13 +151,13 @@ export default function PostCard({ post, onDelete, onUpdate }) {
 
       {/* Tags */}
       {post.taggedUsers?.length > 0 && (
-        <p className="px-3.5 pb-1 text-[11px] text-muted">
+        <p className="px-[14px] pb-1 text-[11px] text-muted">
           with {post.taggedUsers.map(t => `@${t.username}`).join(', ')}
         </p>
       )}
 
       {/* Time */}
-      <p className="px-3.5 pb-2.5 text-[11px] text-muted uppercase tracking-wide">
+      <p className="px-[14px] pb-[10px] text-[11px] text-muted uppercase" style={{ letterSpacing: '.3px' }}>
         {timeAgo(post.createdAt)}
       </p>
 

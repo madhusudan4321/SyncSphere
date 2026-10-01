@@ -61,79 +61,112 @@ export default function ForgotPage() {
 
   return (
     <>
-      <div className="text-center mb-1 flex flex-col items-center gap-0">
-        <Image src="/logo.png" alt="SyncSphere" width={80} height={80} className="mx-auto" priority />
-        <h1 className="font-[family-name:var(--font-dancing)] text-[52px] font-bold bg-auth-gradient">
+      {/* Logo — matching legacy */}
+      <div className="text-center flex flex-col items-center gap-0 mb-1">
+        <Image
+          src="/logo.png"
+          alt="SyncSphere"
+          width={150}
+          height={150}
+          className="object-contain"
+          style={{ mixBlendMode: 'multiply' }}
+          priority
+        />
+        <h1 className="font-[family-name:var(--font-dancing)] text-[52px] font-bold bg-auth-gradient leading-tight mb-2">
           SyncSphere
         </h1>
       </div>
 
-      <div className="bg-surface border border-border rounded-md px-8 py-7 mb-2.5">
-        <h2 className="text-center text-lg font-bold mb-2">Reset Password</h2>
-
-        {/* Step 1: Email */}
-        {step === 1 && (
-          <form onSubmit={handleSendOTP} className="flex flex-col gap-2">
-            <p className="text-center text-[13px] text-muted mb-3">
-              Enter your email address and we&apos;ll send you an OTP.
+      {/* Step 1: Enter Email */}
+      {step === 1 && (
+        <>
+          <div className="bg-surface border border-border rounded-[4px] px-8 pt-7 pb-5 mb-2.5">
+            <p className="text-center text-[16px] font-semibold mb-4 font-[family-name:var(--font-playfair)] leading-[1.4]">
+              Reset your password
             </p>
-            <input
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2.5 border border-border rounded-md text-[13px] bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white"
-            />
-            <button type="submit" disabled={loading}
-              className="w-full py-2.5 bg-accent text-white border-none rounded-lg text-sm font-semibold cursor-pointer mt-1 transition-opacity hover:opacity-85 disabled:opacity-60">
-              {loading ? 'Sending...' : 'Send OTP'}
-            </button>
-          </form>
-        )}
-
-        {/* Step 2: OTP */}
-        {step === 2 && (
-          <form onSubmit={handleVerifyOTP} className="flex flex-col gap-2">
-            <p className="text-center text-[13px] text-muted mb-3">
-              Enter the code sent to <span className="font-semibold text-text">{email}</span>
+            <p className="text-center text-[13px] text-muted mb-4">
+              Enter your registered email and we&apos;ll send you an OTP
             </p>
+            <form onSubmit={handleSendOTP}>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2.5 border border-border rounded-[6px] text-[13px] bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white mb-2 block"
+              />
+              {error && <p className="text-danger text-xs text-center mt-1.5 min-h-4">{error}</p>}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-[9px] bg-accent text-white border-none rounded-[8px] text-[14px] font-semibold cursor-pointer mt-2 transition-opacity hover:opacity-85 disabled:opacity-60"
+              >
+                {loading ? 'Sending...' : 'Send OTP'}
+              </button>
+            </form>
+          </div>
+          <div className="bg-surface border border-border rounded-[4px] py-3.5 text-center text-[13px] text-muted">
+            Remember your password?{' '}
+            <Link href="/login" className="text-accent font-semibold cursor-pointer hover:underline">Log in</Link>
+          </div>
+        </>
+      )}
+
+      {/* Step 2: Enter OTP */}
+      {step === 2 && (
+        <div className="bg-surface border border-border rounded-[4px] px-8 pt-7 pb-5 mb-2.5">
+          <p className="text-center text-[16px] font-semibold mb-4 font-[family-name:var(--font-playfair)] leading-[1.4]">
+            Enter OTP
+          </p>
+          <p className="text-center text-[13px] text-muted mb-4">
+            We sent a 6-digit OTP to <strong>{email}</strong>
+          </p>
+          <form onSubmit={handleVerifyOTP}>
             <input
               type="text"
               inputMode="numeric"
-              placeholder="6-digit OTP"
+              placeholder="Enter 6-digit OTP"
               maxLength={6}
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-              className="w-full px-3 py-2.5 border border-border rounded-md text-[13px] bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white text-center tracking-[8px] text-lg font-bold"
+              className="w-full px-3 py-2.5 border border-border rounded-[6px] text-[20px] font-bold bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white mb-2 block text-center tracking-[8px]"
             />
-            <button type="submit" disabled={loading}
-              className="w-full py-2.5 bg-accent text-white border-none rounded-lg text-sm font-semibold cursor-pointer mt-1 transition-opacity hover:opacity-85 disabled:opacity-60">
+            {error && <p className="text-danger text-xs text-center mt-1.5 min-h-4">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-[9px] bg-accent text-white border-none rounded-[8px] text-[14px] font-semibold cursor-pointer mt-2 transition-opacity hover:opacity-85 disabled:opacity-60"
+            >
               {loading ? 'Verifying...' : 'Verify OTP'}
             </button>
-          </form>
-        )}
-
-        {/* Step 3: New Password */}
-        {step === 3 && (
-          <form onSubmit={handleReset} className="flex flex-col gap-2">
-            <p className="text-center text-[13px] text-muted mb-3">
-              Enter your new password.
+            <p className="text-center mt-3 text-[13px] text-muted">
+              Didn&apos;t receive?{' '}
+              <span onClick={handleSendOTP} className="text-accent cursor-pointer font-semibold">Resend OTP</span>
             </p>
-            <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New password" />
-            <PasswordInput value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm new password" />
-            <button type="submit" disabled={loading}
-              className="w-full py-2.5 bg-accent text-white border-none rounded-lg text-sm font-semibold cursor-pointer mt-1 transition-opacity hover:opacity-85 disabled:opacity-60">
+          </form>
+        </div>
+      )}
+
+      {/* Step 3: New Password */}
+      {step === 3 && (
+        <div className="bg-surface border border-border rounded-[4px] px-8 pt-7 pb-5 mb-2.5">
+          <p className="text-center text-[16px] font-semibold mb-4 font-[family-name:var(--font-playfair)] leading-[1.4]">
+            Set new password
+          </p>
+          <form onSubmit={handleReset}>
+            <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New Password (min 6 chars)" />
+            <PasswordInput value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm New Password" />
+            {error && <p className="text-danger text-xs text-center mt-1.5 min-h-4">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-[9px] bg-accent text-white border-none rounded-[8px] text-[14px] font-semibold cursor-pointer mt-2 transition-opacity hover:opacity-85 disabled:opacity-60"
+            >
               {loading ? 'Resetting...' : 'Reset Password'}
             </button>
           </form>
-        )}
-
-        {error && <p className="text-danger text-xs text-center mt-2">{error}</p>}
-      </div>
-
-      <div className="bg-surface border border-border rounded-md py-3.5 text-center text-[13px] text-muted">
-        <Link href="/login" className="text-accent font-semibold hover:underline">Back to Login</Link>
-      </div>
+        </div>
+      )}
     </>
   );
 }

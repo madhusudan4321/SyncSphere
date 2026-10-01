@@ -9,7 +9,7 @@ import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ username: '', email: '', name: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -20,7 +20,7 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const { username, email, name, password, confirmPassword } = form;
+    const { username, email, password, confirmPassword } = form;
     if (!username || !email || !password) {
       setError('Please fill in all required fields');
       return;
@@ -36,7 +36,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await api.post('/auth/register', { username: username.trim(), email: email.trim(), name: name.trim(), password });
+      await api.post('/auth/register', { username: username.trim(), email: email.trim(), password });
       showToast('Account created! Please verify your email.');
       sessionStorage.setItem('verify_email', email.trim());
       router.push('/verify');
@@ -49,41 +49,43 @@ export default function RegisterPage() {
 
   return (
     <>
-      {/* Logo */}
-      <div className="text-center mb-2 flex flex-col items-center gap-2">
-        <Image src="/logo.png" alt="SyncSphere" width={100} height={100} className="mx-auto" priority />
-        <h1 className="font-[family-name:var(--font-dancing)] text-[48px] font-bold bg-auth-gradient leading-tight">
+      {/* Logo — matching legacy */}
+      <div className="text-center flex flex-col items-center gap-0 mb-1">
+        <Image
+          src="/logo.png"
+          alt="SyncSphere"
+          width={150}
+          height={150}
+          className="object-contain"
+          style={{ mixBlendMode: 'multiply' }}
+          priority
+        />
+        <h1 className="font-[family-name:var(--font-dancing)] text-[52px] font-bold bg-auth-gradient leading-tight mb-2">
           SyncSphere
         </h1>
       </div>
 
       {/* Register Card */}
-      <div className="bg-surface border border-border rounded-md px-8 pt-6 pb-7 mb-3">
-        <p className="text-center text-[15px] font-semibold mb-6 font-[family-name:var(--font-playfair)] leading-snug">
-          Sign up to see photos and videos from your friends.
+      <div className="bg-surface border border-border rounded-[4px] px-8 pt-7 pb-5 mb-2.5">
+        <p className="text-center text-[16px] font-semibold mb-4 font-[family-name:var(--font-playfair)] leading-[1.4]">
+          Sign up to see photos from your friends.
         </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit}>
           <input
             type="text"
             placeholder="Username"
             value={form.username}
             onChange={update('username')}
-            className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white"
+            className="w-full px-3 py-2.5 border border-border rounded-[6px] text-[13px] bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white mb-2 block"
           />
           <input
             type="email"
             placeholder="Email"
             value={form.email}
             onChange={update('email')}
-            className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white"
-          />
-          <input
-            type="text"
-            placeholder="Full Name (optional)"
-            value={form.name}
-            onChange={update('name')}
-            className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white"
+            autoComplete="email"
+            className="w-full px-3 py-2.5 border border-border rounded-[6px] text-[13px] bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white mb-2 block"
           />
           <PasswordInput
             value={form.password}
@@ -95,22 +97,23 @@ export default function RegisterPage() {
             onChange={update('confirmPassword')}
             placeholder="Confirm Password"
           />
+
+          {error && (
+            <p className="text-danger text-xs text-center mt-1.5 min-h-4">{error}</p>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-accent text-white border-none rounded-lg text-[15px] font-semibold cursor-pointer mt-2 transition-opacity hover:opacity-85 disabled:opacity-60"
+            className="w-full py-[9px] bg-accent text-white border-none rounded-[8px] text-[14px] font-semibold cursor-pointer mt-2 transition-opacity hover:opacity-85 disabled:opacity-60"
           >
             {loading ? 'Signing up...' : 'Sign Up'}
           </button>
         </form>
-
-        {error && (
-          <p className="text-danger text-xs text-center mt-2 min-h-4">{error}</p>
-        )}
       </div>
 
       {/* Switch to Login */}
-      <div className="bg-surface border border-border rounded-md py-4 text-center text-sm text-muted">
+      <div className="bg-surface border border-border rounded-[4px] py-3.5 text-center text-[13px] text-muted">
         Have an account?{' '}
         <Link href="/login" className="text-accent font-semibold cursor-pointer hover:underline">
           Log in

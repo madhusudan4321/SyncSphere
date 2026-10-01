@@ -40,27 +40,36 @@ export default function LoginPage() {
 
   return (
     <>
-      {/* Logo */}
-      <div className="text-center mb-2 flex flex-col items-center gap-2">
-        <Image src="/logo.png" alt="SyncSphere" width={100} height={100} className="mx-auto" priority />
-        <h1 className="font-[family-name:var(--font-dancing)] text-[48px] font-bold bg-auth-gradient leading-tight">
+      {/* Logo — matching legacy: 150x150 image + 52px Dancing Script */}
+      <div className="text-center flex flex-col items-center gap-0 mb-1">
+        <Image
+          src="/logo.png"
+          alt="SyncSphere"
+          width={150}
+          height={150}
+          className="object-contain"
+          style={{ mixBlendMode: 'multiply' }}
+          priority
+        />
+        <h1 className="font-[family-name:var(--font-dancing)] text-[52px] font-bold bg-auth-gradient leading-tight mb-2">
           SyncSphere
         </h1>
       </div>
 
-      {/* Login Card */}
-      <div className="bg-surface border border-border rounded-md px-8 pt-6 pb-7 mb-3">
-        <p className="text-center text-[15px] font-semibold mb-6 font-[family-name:var(--font-playfair)] leading-snug">
-          Sign in to see photos and videos from your friends.
+      {/* Login Card — matching legacy auth-card */}
+      <div className="bg-surface border border-border rounded-[4px] px-8 pt-7 pb-5 mb-2.5">
+        <p className="text-center text-[16px] font-semibold mb-4 font-[family-name:var(--font-playfair)] leading-[1.4]">
+          Sign in to see photos from your friends.
         </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit}>
           <input
             type="text"
             placeholder="Email or Username"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white"
+            autoComplete="off"
+            className="w-full px-3 py-2.5 border border-border rounded-[6px] text-[13px] bg-[#fafafa] outline-none text-text transition-colors focus:border-[#aaa] focus:bg-white mb-2 block"
           />
           <PasswordInput
             value={password}
@@ -68,28 +77,28 @@ export default function LoginPage() {
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)}
           />
 
+          {error && (
+            <p className="text-danger text-xs text-center mt-1.5 min-h-4">{error}</p>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-accent text-white border-none rounded-lg text-[15px] font-semibold cursor-pointer mt-2 transition-opacity hover:opacity-85 disabled:opacity-60"
+            className="w-full py-[9px] bg-accent text-white border-none rounded-[8px] text-[14px] font-semibold cursor-pointer mt-2 transition-opacity hover:opacity-85 disabled:opacity-60"
           >
             {loading ? 'Logging in...' : 'Log In'}
           </button>
         </form>
 
-        {error && (
-          <p className="text-danger text-xs text-center mt-2 min-h-4">{error}</p>
-        )}
-
-        <div className="text-center mt-4">
-          <Link href="/forgot" className="text-sm text-accent font-medium hover:underline">
+        <div className="text-center mt-3">
+          <Link href="/forgot" className="text-[13px] text-accent font-semibold cursor-pointer hover:underline">
             Forgot password?
           </Link>
         </div>
       </div>
 
-      {/* Switch to Register */}
-      <div className="bg-surface border border-border rounded-md py-4 text-center text-sm text-muted">
+      {/* Switch to Register — matching legacy auth-switch */}
+      <div className="bg-surface border border-border rounded-[4px] py-3.5 text-center text-[13px] text-muted">
         Don&apos;t have an account?{' '}
         <Link href="/register" className="text-accent font-semibold cursor-pointer hover:underline">
           Sign up

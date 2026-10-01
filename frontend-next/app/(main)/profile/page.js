@@ -90,7 +90,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-full">
+      <div className="flex justify-center items-center h-full w-full">
         <div className="w-8 h-8 border-3 border-border border-t-accent rounded-full animate-spin-slow" />
       </div>
     );
@@ -99,10 +99,10 @@ export default function ProfilePage() {
   const p = profile || user;
 
   return (
-    <div className="w-full h-full overflow-y-auto">
+    <div className="w-full h-full overflow-y-auto bg-surface">
       {/* Username Header Row */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border sticky top-0 bg-surface z-10">
-        <h2 className="text-base font-bold">{p.username}</h2>
+      <div className="w-full flex items-center justify-between px-4 py-2.5 border-b border-border sticky top-0 bg-surface z-10">
+        <h2 className="text-base font-bold text-text">{p.username}</h2>
         <button onClick={() => setShowMenu(true)} className="bg-transparent border-none cursor-pointer text-text p-1">
           <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
@@ -111,7 +111,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Profile Header */}
-      <div className="px-4 pt-4 pb-3">
+      <div className="w-full px-4 pt-4 pb-3">
         <div className="flex items-center gap-5 mb-4">
           {/* Avatar with gradient ring */}
           <div
@@ -137,44 +137,44 @@ export default function ProfilePage() {
           </div>
 
           {/* Stats */}
-          <div className="flex flex-1 justify-around">
-            <div className="text-center">
-              <p className="text-[17px] font-bold">{p.postCount || posts.length || 0}</p>
-              <p className="text-xs">Posts</p>
+          <div className="flex flex-1 justify-around text-center">
+            <div>
+              <p className="text-[17px] font-bold text-text">{p.postCount || posts.length || 0}</p>
+              <p className="text-xs text-muted">Posts</p>
             </div>
-            <div className="text-center">
-              <p className="text-[17px] font-bold">{p.followersCount || p.followers?.length || 0}</p>
-              <p className="text-xs">Followers</p>
+            <div>
+              <p className="text-[17px] font-bold text-text">{p.followersCount || p.followers?.length || 0}</p>
+              <p className="text-xs text-muted">Followers</p>
             </div>
-            <div className="text-center">
-              <p className="text-[17px] font-bold">{p.followingCount || p.following?.length || 0}</p>
-              <p className="text-xs">Following</p>
+            <div>
+              <p className="text-[17px] font-bold text-text">{p.followingCount || p.following?.length || 0}</p>
+              <p className="text-xs text-muted">Following</p>
             </div>
           </div>
         </div>
 
         {/* Name & Bio */}
-        <div className="mb-3">
-          <p className="text-sm font-semibold">{p.name || p.username}</p>
+        <div className="mb-3 w-full">
+          <p className="text-sm font-semibold text-text">{p.name || p.username}</p>
           {p.bio && <p className="text-[13px] text-text mt-0.5 leading-relaxed">{p.bio}</p>}
           {p.website && (
-            <a href={p.website} target="_blank" rel="noopener noreferrer" className="text-[13px] text-accent font-semibold">
+            <a href={p.website} target="_blank" rel="noopener noreferrer" className="text-[13px] text-accent font-semibold block mt-0.5">
               {p.website.replace(/^https?:\/\//, '')}
             </a>
           )}
         </div>
 
-        {/* Action Buttons — matching legacy */}
-        <div className="flex gap-1.5">
+        {/* Action Buttons */}
+        <div className="flex gap-1.5 w-full">
           <button
             onClick={() => setShowEditModal(true)}
-            className="flex-1 py-[7px] bg-surface2 border-[1.5px] border-border rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-border transition-colors text-text"
+            className="flex-1 py-[7px] bg-surface2 border border-border rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-border transition-colors text-text"
           >
             Edit Profile
           </button>
           <button
             onClick={togglePrivacy}
-            className="flex-1 py-[7px] bg-surface2 border-[1.5px] border-border rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-border transition-colors text-text"
+            className="flex-1 py-[7px] bg-surface2 border border-border rounded-lg text-[13px] font-semibold cursor-pointer hover:bg-border transition-colors text-text"
           >
             {p.isPrivate ? 'Private' : 'Public'}
           </button>
@@ -183,7 +183,7 @@ export default function ProfilePage() {
 
       {/* Follow Requests */}
       {followRequests.length > 0 && (
-        <div className="px-4 py-2 border-t border-b border-border bg-surface2">
+        <div className="w-full px-4 py-2 border-t border-b border-border bg-surface2">
           <p className="text-xs font-semibold text-accent mb-2">Follow Requests ({followRequests.length})</p>
           {followRequests.map(req => (
             <div key={req._id} className="flex items-center gap-2 py-1.5">
@@ -197,7 +197,7 @@ export default function ProfilePage() {
       )}
 
       {/* Posts Tab Header */}
-      <div className="flex border-t border-border border-b border-border">
+      <div className="flex w-full border-t border-b border-border">
         <div className="flex-1 py-2.5 text-center border-t-2 border-t-text text-[13px] font-semibold text-text flex items-center justify-center gap-1.5">
           <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
@@ -206,8 +206,8 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Post Grid */}
-      <div>
+      {/* Post Grid — 3 Column Responsive Grid */}
+      <div className="w-full">
         {posts.length === 0 ? (
           <div className="text-center py-16 text-muted">
             <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24" className="mx-auto mb-3 text-border">
@@ -216,9 +216,9 @@ export default function ProfilePage() {
             <p className="text-base font-semibold">No Posts Yet</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-[2px]">
+          <div className="w-full grid grid-cols-3 gap-[2px]">
             {posts.map(post => (
-              <div key={post._id} className="aspect-square bg-surface2 cursor-pointer overflow-hidden hover:opacity-80 transition-opacity">
+              <div key={post._id} className="w-full aspect-square bg-surface2 cursor-pointer overflow-hidden hover:opacity-80 transition-opacity relative">
                 {post.image ? (
                   <img src={post.image} alt="" className="w-full h-full object-cover block hover:scale-105 transition-transform" />
                 ) : (
@@ -232,7 +232,7 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Settings & Options Menu — matching legacy exactly */}
+      {/* Settings & Options Menu */}
       {showMenu && (
         <div className="fixed inset-0 z-[300] bg-black/65 flex items-end justify-center" style={{ animation: 'fadeInOverlay .2s' }} onClick={() => setShowMenu(false)}>
           <div className="bg-surface w-full max-w-[480px] rounded-t-2xl overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>

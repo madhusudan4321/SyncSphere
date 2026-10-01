@@ -113,7 +113,7 @@ export default function FeedPage() {
             </div>
 
             {!hasMore && posts.length > 0 && (
-              <p className="text-center text-muted text-sm py-6">You&apos;re all caught up! ✨</p>
+              <p className="text-center text-muted text-sm py-6">You&apos;re all caught up!</p>
             )}
           </>
         )}

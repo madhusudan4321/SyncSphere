@@ -39,11 +39,11 @@ export default function MainLayout({ children }) {
   return (
     <SocketProvider>
       <CallProvider>
-        {/* App Shell — exactly like legacy #app-shell: centered 480px container */}
-        <div className="w-full max-w-[480px] h-dvh flex flex-col bg-surface relative shadow-[0_0_40px_rgba(0,0,0,0.08)] overflow-hidden">
+        {/* App Shell — Centered 480px Instagram container on desktop, 100% on mobile */}
+        <div className="w-full max-w-[480px] h-dvh flex flex-col bg-surface relative shadow-[0_0_40px_rgba(0,0,0,0.08)] overflow-hidden mx-auto">
           {/* Top Nav — hidden on /chat tab to match legacy frontend */}
           {!hideTopHeader && (
-            <header className="bg-surface border-b border-border px-4 h-[54px] flex items-center justify-center flex-shrink-0 z-10">
+            <header className="bg-surface border-b border-border px-4 h-[54px] w-full flex items-center justify-center flex-shrink-0 z-10">
               <div className="flex items-center gap-1">
                 <span className="font-[family-name:var(--font-dancing)] text-[28px] font-bold bg-logo-gradient">
                   SyncSphere
@@ -53,7 +53,7 @@ export default function MainLayout({ children }) {
           )}
 
           {/* Content Area */}
-          <main className="flex-1 overflow-hidden relative">
+          <main className="flex-1 w-full overflow-hidden relative">
             {children}
           </main>
 

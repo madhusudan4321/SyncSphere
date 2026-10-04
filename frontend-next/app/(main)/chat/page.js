@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import Avatar from '@/components/ui/Avatar';
 import api from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -48,6 +50,19 @@ const MusicIcon = ({ size = 22 }) => (
   </svg>
 );
 
+const PhoneIcon = ({ size = 18 }) => (
+  <svg width={size} height={size} {...ip}>
+    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
+  </svg>
+);
+
+const VideoIcon = ({ size = 18 }) => (
+  <svg width={size} height={size} {...ip}>
+    <path d="M23 7l-7 5 7 5V7z" />
+    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+  </svg>
+);
+
 const Spinner = ({ size = 24 }) => (
   <>
     <style>{`@keyframes ss-spin { to { transform: rotate(360deg); } }`}</style>
@@ -63,6 +78,19 @@ const Spinner = ({ size = 24 }) => (
     />
   </>
 );
+
+const roundBtn = {
+  width: 38,
+  height: 38,
+  flexShrink: 0,
+  border: 'none',
+  borderRadius: '50%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  padding: 0,
+};
 
 /* ---------- Chat page ---------- */
 export default function ChatPage() {
@@ -83,6 +111,17 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => { loadThreads(); }, [loadThreads]);
+
+  // Open a chat directly when coming from a profile's Message button
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('open_chat');
+      if (!raw) return;
+      sessionStorage.removeItem('open_chat');
+      const u = JSON.parse(raw);
+      setSelectedChat({ userId: u._id, username: u.username, user: u });
+    } catch {}
+  }, []);
 
   // Socket: new messages update thread list
   useEffect(() => {
@@ -132,12 +171,10 @@ export default function ChatPage() {
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={() => setShowCallHistory(true)} style={headerBtn} title="Call Logs" aria-label="Call Logs">
-            <svg width="22" height="22" {...ip}>
-              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-            </svg>
+            <PhoneIcon size={22} />
           </button>
           <button onClick={() => setShowNewChat(true)} style={headerBtn} title="Search" aria-label="Search">
-              <SearchIcon size={22} />
+            <SearchIcon size={22} />
           </button>
         </div>
       </div>
@@ -244,6 +281,7 @@ export default function ChatPage() {
       <div className={`h-full w-full flex-col flex-1 min-w-0 ${selectedChat ? 'flex' : 'hidden'}`}>
         {selectedChat && (
           <ChatWindow
+            key={selectedChat.userId}
             partnerId={selectedChat.userId}
             partnerName={selectedChat.username}
             partnerUser={selectedChat.user}
@@ -296,7 +334,7 @@ function NewChatSearch({ onClose, onSelect }) {
       } catch {
         list = [];
       }
-      if (cancelled) return; // a newer search has started, ignore this response
+      if (cancelled) return;
       setResults(list.filter((u) => u._id !== user?._id));
       setSearchedFor(q);
     }, 300);
@@ -343,12 +381,10 @@ function NewChatSearch({ onClose, onSelect }) {
           overflow: 'hidden',
         }}
       >
-        {/* Drag handle */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', flexShrink: 0 }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: '#dbdbdb' }} />
         </div>
 
-        {/* Title row */}
         <div
           style={{
             display: 'flex',
@@ -358,7 +394,7 @@ function NewChatSearch({ onClose, onSelect }) {
             flexShrink: 0,
           }}
         >
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#262626' }}>New message</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#262626' }}>Search</h3>
           <button
             onClick={onClose}
             aria-label="Close"
@@ -368,7 +404,6 @@ function NewChatSearch({ onClose, onSelect }) {
           </button>
         </div>
 
-        {/* Search field */}
         <div style={{ padding: '0 16px 12px', flexShrink: 0, borderBottom: '1px solid #efefef' }}>
           <div
             style={{
@@ -416,7 +451,6 @@ function NewChatSearch({ onClose, onSelect }) {
           </div>
         </div>
 
-        {/* Results */}
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehaviorY: 'contain' }}>
           {tooShort ? (
             <p style={hint}>Type at least {MIN_QUERY} characters to search</p>
@@ -558,6 +592,225 @@ function CallHistoryModal({ onClose }) {
   );
 }
 
+/* ---------- Chat options sheet ---------- */
+const REPORT_REASONS = ['Spam or fake account', 'Inappropriate content', 'Harassment', 'Scam or fraud'];
+
+function SheetRow({ icon, label, onClick, color = '#262626', tint = '#f2f2f2' }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '12px 20px',
+        background: 'none',
+        border: 'none',
+        textAlign: 'left',
+        cursor: 'pointer',
+        fontSize: 15,
+        fontWeight: 600,
+        color,
+      }}
+    >
+      <span
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          background: tint,
+          color,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function ChatOptionsSheet({ partnerId, partnerName, partnerUser, onClose, onProfile, onVoice, onVideo, onMedia, onBlocked }) {
+  const [closing, setClosing] = useState(false);
+  const [view, setView] = useState('main');
+  const { showToast } = useToast();
+
+  const close = (after) => {
+    setClosing(true);
+    setTimeout(() => {
+      onClose();
+      if (typeof after === 'function') after();
+    }, 180);
+  };
+
+  const block = async () => {
+    if (!confirm(`Block @${partnerName}?`)) return;
+    try {
+      await api.post(`/users/${partnerId}/block`);
+      showToast(`@${partnerName} blocked`);
+      close(onBlocked);
+    } catch (err) { showToast(err.message); }
+  };
+
+  const report = async (reason) => {
+    try {
+      await api.post(`/users/${partnerId}/report`, { reason });
+    } catch {}
+    showToast('Report submitted. Thank you!');
+    close();
+  };
+
+  return createPortal(
+    <>
+      <style>{`
+        @keyframes ss-fade-in { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes ss-fade-out { from { opacity: 1 } to { opacity: 0 } }
+        @keyframes ss-sheet-in { from { transform: translateY(100%) } to { transform: translateY(0) } }
+        @keyframes ss-sheet-out { from { transform: translateY(0) } to { transform: translateY(100%) } }
+      `}</style>
+      <div
+        onClick={() => close()}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1000,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          animation: `${closing ? 'ss-fade-out' : 'ss-fade-in'} 0.18s ease forwards`,
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            background: '#fff',
+            width: '100%',
+            maxWidth: 480,
+            borderRadius: '20px 20px 0 0',
+            overflow: 'hidden',
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+            animation: `${closing ? 'ss-sheet-out' : 'ss-sheet-in'} 0.22s cubic-bezier(0.32, 0.72, 0, 1) forwards`,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 6px' }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#dbdbdb' }} />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0 14px', gap: 8 }}>
+            <Avatar user={partnerUser || { username: partnerName }} size={64} fontSize={20} />
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#262626' }}>@{partnerName}</p>
+          </div>
+
+          <div style={{ borderTop: '1px solid #efefef', paddingTop: 6 }}>
+            {view === 'main' ? (
+              <>
+                <SheetRow
+                  label="View profile"
+                  onClick={() => close(onProfile)}
+                  icon={<svg width="20" height="20" {...ip}><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>}
+                />
+                <SheetRow
+                  label="Voice call" color="#16a34a" tint="#e8f7ee"
+                  onClick={() => close(onVoice)}
+                  icon={<PhoneIcon size={20} />}
+                />
+                <SheetRow
+                  label="Video call" color="#0095f6" tint="#e6f3fe"
+                  onClick={() => close(onVideo)}
+                  icon={<VideoIcon size={20} />}
+                />
+                <SheetRow
+                  label="Shared media" color="#8b5cf6" tint="#f1ebfe"
+                  onClick={() => close(onMedia)}
+                  icon={<svg width="20" height="20" {...ip}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21,15 16,10 5,21" /></svg>}
+                />
+                <SheetRow
+                  label="Block user" color="#ed4956" tint="#fdecee"
+                  onClick={block}
+                  icon={<svg width="20" height="20" {...ip}><circle cx="12" cy="12" r="10" /><line x1="4.9" y1="4.9" x2="19.1" y2="19.1" /></svg>}
+                />
+                <SheetRow
+                  label="Report user" color="#f59e0b" tint="#fef3df"
+                  onClick={() => setView('report')}
+                  icon={<svg width="20" height="20" {...ip}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>}
+                />
+              </>
+            ) : (
+              <>
+                <p style={{ margin: '4px 20px 6px', fontSize: 13, color: '#8e8e8e' }}>Why are you reporting this account?</p>
+                {REPORT_REASONS.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => report(r)}
+                    style={{
+                      width: '100%',
+                      padding: '14px 20px',
+                      background: 'none',
+                      border: 'none',
+                      borderTop: '1px solid #f3f3f3',
+                      textAlign: 'left',
+                      fontSize: 15,
+                      fontWeight: 500,
+                      color: '#262626',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {r}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setView('main')}
+                  style={{
+                    width: '100%',
+                    padding: '14px 20px',
+                    background: 'none',
+                    border: 'none',
+                    borderTop: '1px solid #f3f3f3',
+                    textAlign: 'left',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: '#8e8e8e',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Back
+                </button>
+              </>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => close()}
+            style={{
+              width: '100%',
+              padding: '14px 0',
+              background: 'none',
+              border: 'none',
+              borderTop: '1px solid #efefef',
+              fontSize: 15,
+              fontWeight: 600,
+              color: '#8e8e8e',
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+}
+
 /* ---------- Chat Window ---------- */
 function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
   const [messages, setMessages] = useState([]);
@@ -566,6 +819,7 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
   const [typing, setTyping] = useState(false);
   const [presence, setPresence] = useState({ isOnline: false, lastSeen: null });
   const [showMediaGallery, setShowMediaGallery] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -579,10 +833,13 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
   const audioChunksRef = useRef([]);
   const recTimerRef = useRef(null);
 
+  const router = useRouter();
   const { user } = useAuth();
   const socket = useSocket();
   const { startCall } = useCall();
   const { showToast } = useToast();
+
+  const callTarget = partnerUser || { _id: partnerId, username: partnerName };
 
   // Request presence
   useEffect(() => {
@@ -664,7 +921,8 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
     const tempMsg = { _id: 'temp_' + Date.now(), text: t, sender: user._id, createdAt: new Date().toISOString() };
     setMessages(prev => [...prev, tempMsg]);
     try {
-      const msg = await api.post('/messages', { receiverId: partnerId, text: t });
+      // Send both field names so it works whichever one the route reads
+      const msg = await api.post('/messages', { to: partnerId, receiverId: partnerId, text: t });
       setMessages(prev => prev.map(m => m._id === tempMsg._id ? msg : m));
       socket?.emit('message-sent', { to: partnerId, message: msg });
       socket?.emit('typing:stop', { to: partnerId });
@@ -692,6 +950,7 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
     const fd = new FormData();
     fd.append('file', file);
     fd.append('receiverId', partnerId);
+    fd.append('to', partnerId);
 
     try {
       const res = await api.request('POST', '/media/upload', fd, true);
@@ -706,7 +965,6 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
     }
   };
 
-  // Open file input with specified accept filter
   const openFileInput = (acceptType) => {
     setShowAttachMenu(false);
     if (fileInputRef.current) {
@@ -761,6 +1019,14 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
     }
   };
 
+  const callBtn = {
+    ...roundBtn,
+    width: 34,
+    height: 34,
+    background: '#efefef',
+    color: '#262626',
+  };
+
   return (
     <div className="flex flex-col h-full bg-surface">
       {/* Header */}
@@ -770,46 +1036,52 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
             <polyline points="15,18 9,12 15,6" />
           </svg>
         </button>
-        <Avatar user={{ username: partnerName }} size={36} fontSize={12} />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate">{partnerName}</p>
-          <p className="text-[11px] text-muted truncate">
-            {typing ? (
-              <span className="text-accent font-medium animate-pulse">typing...</span>
-            ) : presence.isOnline ? (
-              <span className="text-success font-medium">Online</span>
-            ) : presence.lastSeen ? (
-              `Last seen ${timeAgo(presence.lastSeen)}`
-            ) : (
-              'Offline'
-            )}
-          </p>
+
+        {/* Tappable profile area */}
+        <div
+          onClick={() => setShowOptions(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, cursor: 'pointer' }}
+        >
+          <Avatar user={partnerUser || { username: partnerName }} size={38} fontSize={12} />
+          <div style={{ minWidth: 0 }}>
+            <p className="text-sm font-semibold truncate">{partnerName}</p>
+            <p className="text-[11px] text-muted truncate">
+              {typing ? (
+                <span className="text-accent font-medium animate-pulse">typing...</span>
+              ) : presence.isOnline ? (
+                <span className="text-success font-medium">Online</span>
+              ) : presence.lastSeen ? (
+                `Last seen ${timeAgo(presence.lastSeen)}`
+              ) : (
+                'Offline'
+              )}
+            </p>
+          </div>
         </div>
 
-        {/* Action Buttons: Voice Call, Video Call */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => startCall(partnerUser || { _id: partnerId, username: partnerName }, 'voice')}
-            className="w-8 h-8 rounded-full bg-surface2 flex items-center justify-center cursor-pointer text-text hover:text-accent transition-colors"
-            title="Voice Call"
-          >
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
-            </svg>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => startCall(callTarget, 'voice')} style={callBtn} title="Voice Call" aria-label="Voice Call">
+            <PhoneIcon />
           </button>
-
-          <button
-            onClick={() => startCall(partnerUser || { _id: partnerId, username: partnerName }, 'video')}
-            className="w-8 h-8 rounded-full bg-surface2 flex items-center justify-center cursor-pointer text-text hover:text-accent transition-colors"
-            title="Video Call"
-          >
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M23 7l-7 5 7 5V7z" />
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-            </svg>
+          <button onClick={() => startCall(callTarget, 'video')} style={callBtn} title="Video Call" aria-label="Video Call">
+            <VideoIcon />
           </button>
         </div>
       </div>
+
+      {showOptions && (
+        <ChatOptionsSheet
+          partnerId={partnerId}
+          partnerName={partnerName}
+          partnerUser={partnerUser}
+          onClose={() => setShowOptions(false)}
+          onProfile={() => router.push(`/profile/${partnerName}`)}
+          onVoice={() => startCall(callTarget, 'voice')}
+          onVideo={() => startCall(callTarget, 'video')}
+          onMedia={() => setShowMediaGallery(true)}
+          onBlocked={onBack}
+        />
+      )}
 
       {/* Messages Feed */}
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
@@ -856,21 +1128,36 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
       )}
 
       {/* Input Bar */}
-      <div className="px-3 py-2.5 border-t border-border flex items-center gap-2 flex-shrink-0 bg-surface">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '10px 12px',
+          borderTop: '1px solid #efefef',
+          background: '#fff',
+          flexShrink: 0,
+        }}
+      >
         <input
           type="file"
           ref={fileInputRef}
-          onChange={(e) => handleFileUpload(e.target.files)}
-          className="hidden"
+          onChange={(e) => { handleFileUpload(e.target.files); e.target.value = ''; }}
+          style={{ display: 'none' }}
           accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.zip"
         />
 
-        {/* Attachment Options Menu & Toggle Button */}
-        <div className="relative flex-shrink-0">
+        {/* Attachment button + menu */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
           <button
             onClick={() => setShowAttachMenu(!showAttachMenu)}
-            className={`w-9 h-9 rounded-full bg-surface2 flex items-center justify-center text-text hover:text-accent cursor-pointer transition-colors ${showAttachMenu ? 'text-accent bg-border/40' : ''}`}
             title="Attach File"
+            aria-label="Attach File"
+            style={{
+              ...roundBtn,
+              background: showAttachMenu ? '#e6f3fe' : '#efefef',
+              color: showAttachMenu ? '#0095f6' : '#262626',
+            }}
           >
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
@@ -927,16 +1214,28 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
           )}
         </div>
 
-        {/* Voice Note Recorder or Text Input */}
+        {/* Recorder or text input */}
         {recording ? (
-          <div className="flex-1 bg-surface2 rounded-full py-1.5 px-4 flex items-center justify-between border border-danger/40 animate-pulse">
-            <span className="text-xs text-danger font-semibold flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 bg-danger rounded-full animate-ping" />
-              Recording {recordingTime}s
-            </span>
-            <div className="flex items-center gap-2">
-              <button onClick={cancelVoiceRecording} className="text-xs text-muted cursor-pointer bg-transparent border-none">Cancel</button>
-              <button onClick={stopVoiceRecording} className="text-xs text-accent font-bold cursor-pointer bg-transparent border-none">Send</button>
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 16px',
+              background: '#fafafa',
+              border: '1px solid #f5b5ba',
+              borderRadius: 999,
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#ed4956' }}>Recording {recordingTime}s</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <button onClick={cancelVoiceRecording} style={{ background: 'none', border: 'none', fontSize: 13, color: '#8e8e8e', cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={stopVoiceRecording} style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#0095f6', cursor: 'pointer' }}>
+                Send
+              </button>
             </div>
           </div>
         ) : (
@@ -965,17 +1264,18 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
               <button
                 onClick={sendMessage}
                 aria-label="Send"
-                className="bg-accent border-none rounded-full w-9 h-9 flex items-center justify-center cursor-pointer flex-shrink-0 hover:scale-105 transition-transform"
+                style={{ ...roundBtn, background: '#0095f6' }}
               >
-                <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24">
+                <svg width="17" height="17" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22,2 15,22 11,13 2,9" />
                 </svg>
               </button>
             ) : (
               <button
                 onClick={startVoiceRecording}
-                className="w-9 h-9 rounded-full bg-surface2 flex items-center justify-center text-text hover:text-accent cursor-pointer transition-colors flex-shrink-0"
                 title="Voice Note"
+                aria-label="Voice Note"
+                style={{ ...roundBtn, background: '#efefef', color: '#262626' }}
               >
                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
@@ -1093,7 +1393,7 @@ function MediaGalleryModal({ chatId, onClose }) {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 400,
+        zIndex: 1100,
         background: 'rgba(0,0,0,0.6)',
         display: 'flex',
         alignItems: 'flex-end',

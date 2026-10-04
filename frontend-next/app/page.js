@@ -21,14 +21,60 @@ export default function HomePage() {
 
   // Splash screen while deciding
   return (
-    <div className="w-full h-dvh flex items-center justify-center bg-surface">
-      <div className="text-center flex flex-col items-center">
-        <Image src="/logo.png" alt="SyncSphere" width={80} height={80} className="mb-4" />
-        <h1 className="font-[family-name:var(--font-dancing)] text-5xl font-bold bg-auth-gradient mb-2">
-          SyncSphere
-        </h1>
-        <div className="w-8 h-8 border-3 border-border border-t-accent rounded-full animate-spin-slow mt-4" />
-      </div>
+    <div
+      style={{
+        width: '100%',
+        height: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#ffffff',
+      }}
+    >
+      <style>{`
+        @keyframes ss-spin { to { transform: rotate(360deg); } }
+      `}</style>
+
+      <Image
+        src="/logo.png"
+        alt="SyncSphere"
+        width={80}
+        height={80}
+        style={{ objectFit: 'contain', mixBlendMode: 'multiply', marginBottom: 8 }}
+        priority
+      />
+
+      <h1
+        style={{
+          fontFamily: 'var(--font-dancing), "Dancing Script", cursive',
+          fontSize: 52,
+          fontWeight: 700,
+          lineHeight: 1.3,
+          margin: 0,
+          padding: '0 8px 14px',
+          display: 'inline-block',
+          background: 'linear-gradient(90deg, #4f46e5, #c026d3, #e11d48)',
+          WebkitBackgroundClip: 'text',
+          backgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          color: 'transparent',
+        }}
+      >
+        SyncSphere
+      </h1>
+
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          marginTop: 8,
+          border: '3px solid #dbdbdb',
+          borderTopColor: '#0095f6',
+          borderRadius: '50%',
+          animation: 'ss-spin 0.8s linear infinite',
+        }}
+      />
     </div>
   );
 }

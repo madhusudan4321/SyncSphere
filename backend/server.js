@@ -17,11 +17,14 @@ const server = http.createServer(app);
 // ── Allowed origins ───────────────────────────────────────────
 const allowedOrigins = [
   'https://syncsphere-frontend.onrender.com',
-  'syncsphere-frontend-next.vercel.app',
+  'https://syncsphere-frontend-next.vercel.app',
   'http://localhost:5500',
   'http://127.0.0.1:5500',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
+  'https://localhost',
+  'http://localhost',
+  'capacitor://localhost'
 ];
 
 // ── CORS ──────────────────────────────────────────────────────

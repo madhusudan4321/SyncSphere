@@ -17,7 +17,7 @@ const server = http.createServer(app);
 // ── Allowed origins ───────────────────────────────────────────
 const allowedOrigins = [
   'https://syncsphere-frontend.onrender.com',
-  'https://syncsphere-frontend-next.vercel.app',
+  'syncsphere-frontend-next.vercel.app',
   'http://localhost:5500',
   'http://127.0.0.1:5500',
   'http://localhost:3000',
@@ -54,6 +54,7 @@ app.use('/api/stories',  require('./routes/stories'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/calls',    require('./routes/calls'));
 app.use('/api/media',    require('./routes/media'));
+app.use('/api/app',      require('./routes/appVersion'));
 
 // ── Global error handler ──────────────────────────────────────
 app.use((err, req, res, next) => {

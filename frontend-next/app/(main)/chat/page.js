@@ -7,8 +7,64 @@ import { useAuth } from '@/lib/auth-context';
 import { useSocket } from '@/lib/socket';
 import { useCall } from '@/lib/call-context';
 import { useToast } from '@/components/ui/Toast';
-import { timeAgo, QUICK_EMOJIS, formatFileSize, FILE_ICONS, FILE_COLORS, getFileCategory } from '@/lib/utils';
+import { timeAgo, formatFileSize, getFileCategory } from '@/lib/utils';
 
+/* ---------- Icons ---------- */
+const ip = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  viewBox: '0 0 24 24',
+};
+
+const CloseIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} {...ip}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const SearchIcon = ({ size = 18 }) => (
+  <svg width={size} height={size} {...ip}>
+    <circle cx="11" cy="11" r="7" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+const FileIcon = ({ size = 24 }) => (
+  <svg width={size} height={size} {...ip}>
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+    <polyline points="14,2 14,8 20,8" />
+  </svg>
+);
+
+const MusicIcon = ({ size = 22 }) => (
+  <svg width={size} height={size} {...ip}>
+    <path d="M9 18V5l12-2v13" />
+    <circle cx="6" cy="18" r="3" />
+    <circle cx="18" cy="16" r="3" />
+  </svg>
+);
+
+const Spinner = ({ size = 24 }) => (
+  <>
+    <style>{`@keyframes ss-spin { to { transform: rotate(360deg); } }`}</style>
+    <div
+      style={{
+        width: size,
+        height: size,
+        border: '2px solid #dbdbdb',
+        borderTopColor: '#0095f6',
+        borderRadius: '50%',
+        animation: 'ss-spin 0.8s linear infinite',
+      }}
+    />
+  </>
+);
+
+/* ---------- Chat page ---------- */
 export default function ChatPage() {
   const [threads, setThreads] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -17,7 +73,6 @@ export default function ChatPage() {
   const [showCallHistory, setShowCallHistory] = useState(false);
   const { user } = useAuth();
   const socket = useSocket();
-  const { showToast } = useToast();
 
   const loadThreads = useCallback(async () => {
     try {
@@ -49,48 +104,57 @@ export default function ChatPage() {
     setSelectedChat({ userId, username, user: userObj });
   };
 
+  const headerBtn = {
+    background: 'none',
+    border: 'none',
+    padding: 6,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    color: '#262626',
+  };
+
   const renderThreadsList = () => (
     <div className="flex flex-col h-full bg-surface border-r border-border">
       {/* Header */}
-      <div className="px-4 py-3.5 border-b border-border flex items-center justify-between flex-shrink-0">
-        <h2 className="text-[18px] font-bold">{user?.username || 'Messages'}</h2>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowCallHistory(true)}
-            className="bg-transparent border-none cursor-pointer text-text hover:text-accent p-1 transition-colors"
-            title="Call Logs"
-          >
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <div
+        style={{
+          padding: '14px 16px',
+          borderBottom: '1px solid #efefef',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+        }}
+      >
+        <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: '#262626' }}>
+          {user?.username || 'Messages'}
+        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => setShowCallHistory(true)} style={headerBtn} title="Call Logs" aria-label="Call Logs">
+            <svg width="22" height="22" {...ip}>
               <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
             </svg>
           </button>
-          <button
-            onClick={() => setShowNewChat(true)}
-            className="bg-transparent border-none cursor-pointer text-text hover:text-accent p-1 transition-colors"
-            title="New Chat"
-          >
-            <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/>
-              <line x1="10" y1="11" x2="14" y2="11"/>
-            </svg>
+          <button onClick={() => setShowNewChat(true)} style={headerBtn} title="Search" aria-label="Search">
+              <SearchIcon size={22} />
           </button>
         </div>
       </div>
 
       {/* Thread list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" style={{ overscrollBehaviorY: 'contain' }}>
         {loading ? (
-          <div className="flex justify-center py-10">
-            <div className="w-7 h-7 border-2 border-border border-t-accent rounded-full animate-spin-slow" />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+            <Spinner size={28} />
           </div>
         ) : threads.length === 0 ? (
-          <div className="text-center py-16 text-muted px-4">
-            <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="mx-auto mb-3 text-border">
+          <div style={{ textAlign: 'center', padding: '64px 24px', color: '#8e8e8e' }}>
+            <svg width="48" height="48" {...ip} strokeWidth={1.3} style={{ margin: '0 auto 12px', display: 'block', color: '#dbdbdb' }}>
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
-            <p className="text-base font-semibold mb-1">No messages yet</p>
-            <p className="text-sm">Start a conversation with friends!</p>
+            <p style={{ fontSize: 16, fontWeight: 600, margin: '0 0 4px', color: '#262626' }}>No messages yet</p>
+            <p style={{ fontSize: 14, margin: 0 }}>Start a conversation with friends</p>
           </div>
         ) : (
           threads.map(t => {
@@ -100,7 +164,7 @@ export default function ChatPage() {
             const lastText = lastMsg.text || '';
             let preview = '';
             if (lastMsg.type === 'media') {
-              preview = isMine ? 'You: 📎 Attached File' : '📎 Attached File';
+              preview = isMine ? 'You: Attachment' : 'Attachment';
             } else if (lastText) {
               const sliced = lastText.length > 35 ? lastText.slice(0, 35) + '...' : lastText;
               preview = isMine ? `You: ${sliced}` : sliced;
@@ -114,22 +178,52 @@ export default function ChatPage() {
               <div
                 key={t._id || partner._id}
                 onClick={() => openChat(partner._id, partner.username, partner)}
-                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-border/40 ${
-                  isSelected ? 'bg-accent/10 border-l-4 border-l-accent' : 'hover:bg-surface2'
-                }`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '12px 16px',
+                  cursor: 'pointer',
+                  borderBottom: '1px solid #f3f3f3',
+                  background: isSelected ? 'rgba(0,149,246,0.08)' : 'transparent',
+                }}
               >
-                <div className="relative">
-                  <Avatar user={partner} size={50} fontSize={16} />
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <Avatar user={partner} size={52} fontSize={16} />
                   {t.online && (
-                    <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success rounded-full border-2 border-surface" />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        right: 0,
+                        width: 14,
+                        height: 14,
+                        borderRadius: '50%',
+                        background: '#22c55e',
+                        border: '2px solid #fff',
+                      }}
+                    />
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-text">{partner.username}</p>
-                  <p className="text-[13px] text-muted truncate">{preview}</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: '#262626' }}>{partner.username}</p>
+                  <p
+                    style={{
+                      fontSize: 13,
+                      margin: '3px 0 0',
+                      color: '#8e8e8e',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {preview}
+                  </p>
                 </div>
                 {timeStr && (
-                  <span className="text-[11px] text-muted flex-shrink-0 self-start mt-1">{timeStr}</span>
+                  <span style={{ fontSize: 11, color: '#8e8e8e', flexShrink: 0, alignSelf: 'flex-start', marginTop: 4 }}>
+                    {timeStr}
+                  </span>
                 )}
               </div>
             );
@@ -159,64 +253,209 @@ export default function ChatPage() {
       </div>
 
       {/* New Chat Modal */}
-      {showNewChat && <NewChatSearch onClose={() => setShowNewChat(false)} onSelect={(u) => { setShowNewChat(false); openChat(u._id, u.username, u); }} />}
+      {showNewChat && (
+        <NewChatSearch
+          onClose={() => setShowNewChat(false)}
+          onSelect={(u) => { setShowNewChat(false); openChat(u._id, u.username, u); }}
+        />
+      )}
 
       {/* Call History Modal */}
-      {showCallHistory && <CallHistoryModal onClose={() => setShowCallHistory(false)} onCallUser={(u, type) => { setShowCallHistory(false); openChat(u._id, u.username, u); }} />}
+      {showCallHistory && (
+        <CallHistoryModal
+          onClose={() => setShowCallHistory(false)}
+          onCallUser={(u) => { setShowCallHistory(false); openChat(u._id, u.username, u); }}
+        />
+      )}
     </div>
   );
 }
 
-// New chat search overlay
+/* ---------- New chat search ---------- */
+const MIN_QUERY = 2;
+
 function NewChatSearch({ onClose, onSelect }) {
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
-  const timerRef = useRef(null);
+  const [searchedFor, setSearchedFor] = useState('');
+
+  const q = query.trim();
+  const tooShort = q.length < MIN_QUERY;
+  const searching = !tooShort && searchedFor !== q;
 
   useEffect(() => {
-    if (!query.trim()) { setResults([]); return; }
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(async () => {
+    if (q.length < MIN_QUERY) return;
+    let cancelled = false;
+
+    const timer = setTimeout(async () => {
+      let list = [];
       try {
-        const data = await api.get(`/users/search?q=${encodeURIComponent(query)}`);
-        setResults(data);
-      } catch { setResults([]); }
+        const data = await api.get(`/users/search?q=${encodeURIComponent(q)}`);
+        list = Array.isArray(data) ? data : data?.users || [];
+      } catch {
+        list = [];
+      }
+      if (cancelled) return; // a newer search has started, ignore this response
+      setResults(list.filter((u) => u._id !== user?._id));
+      setSearchedFor(q);
     }, 300);
-    return () => clearTimeout(timerRef.current);
-  }, [query]);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [q, user?._id]);
+
+  const hint = {
+    textAlign: 'center',
+    color: '#8e8e8e',
+    fontSize: 14,
+    lineHeight: 1.5,
+    padding: '48px 24px',
+    margin: 0,
+  };
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black/50 flex items-end justify-center" onClick={onClose}>
-      <div className="bg-surface w-full max-w-[480px] rounded-t-2xl max-h-[70vh] flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-border flex items-center gap-3">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search users..."
-            autoFocus
-            className="flex-1 bg-surface2 rounded-lg px-3.5 py-2 text-sm outline-none text-text border border-border"
-          />
-          <button onClick={onClose} className="text-sm font-semibold text-accent bg-transparent border-none cursor-pointer">Cancel</button>
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 300,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        className="animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff',
+          width: '100%',
+          maxWidth: 480,
+          height: '70dvh',
+          borderRadius: '16px 16px 0 0',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Drag handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', flexShrink: 0 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#dbdbdb' }} />
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
-          {results.map(u => (
-            <div key={u._id} onClick={() => onSelect(u)} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface2 rounded-xl">
-              <Avatar user={u} size={40} fontSize={14} />
-              <div>
-                <p className="text-sm font-semibold">{u.username}</p>
-                <p className="text-xs text-muted">{u.name || ''}</p>
-              </div>
+
+        {/* Title row */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 16px 12px',
+            flexShrink: 0,
+          }}
+        >
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#262626' }}>New message</h3>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex', color: '#262626' }}
+          >
+            <CloseIcon />
+          </button>
+        </div>
+
+        {/* Search field */}
+        <div style={{ padding: '0 16px 12px', flexShrink: 0, borderBottom: '1px solid #efefef' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '0 14px',
+              height: 42,
+              background: '#efefef',
+              borderRadius: 10,
+              boxSizing: 'border-box',
+            }}
+          >
+            <span style={{ display: 'flex', color: '#8e8e8e' }}>
+              <SearchIcon />
+            </span>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search users"
+              autoFocus
+              autoComplete="off"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: '100%',
+                padding: 0,
+                fontSize: 15,
+                color: '#262626',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+              }}
+            />
+            {query && (
+              <button
+                onClick={() => setQuery('')}
+                aria-label="Clear search"
+                style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', display: 'flex', color: '#8e8e8e' }}
+              >
+                <CloseIcon size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Results */}
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehaviorY: 'contain' }}>
+          {tooShort ? (
+            <p style={hint}>Type at least {MIN_QUERY} characters to search</p>
+          ) : searching ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+              <Spinner />
             </div>
-          ))}
+          ) : results.length === 0 ? (
+            <p style={hint}>No users found for &quot;{q}&quot;</p>
+          ) : (
+            results.map((u) => (
+              <div
+                key={u._id}
+                onClick={() => onSelect(u)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 14,
+                  padding: '12px 16px',
+                  cursor: 'pointer',
+                  borderBottom: '1px solid #f3f3f3',
+                }}
+              >
+                <Avatar user={u} size={44} fontSize={14} />
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: '#262626' }}>{u.username}</p>
+                  {u.name && <p style={{ fontSize: 13, margin: '2px 0 0', color: '#8e8e8e' }}>{u.name}</p>}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-// Call History Modal
-function CallHistoryModal({ onClose, onCallUser }) {
+/* ---------- Call History Modal ---------- */
+function CallHistoryModal({ onClose }) {
   const [calls, setCalls] = useState([]);
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
@@ -229,35 +468,85 @@ function CallHistoryModal({ onClose, onCallUser }) {
   }, [showToast]);
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black/50 flex items-end justify-center" onClick={onClose}>
-      <div className="bg-surface w-full max-w-[480px] rounded-t-2xl max-h-[75vh] flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <h3 className="text-base font-bold">Call History</h3>
-          <button onClick={onClose} className="text-muted font-bold text-lg bg-transparent border-none cursor-pointer">✕</button>
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 300,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        className="animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff',
+          width: '100%',
+          maxWidth: 480,
+          maxHeight: '75dvh',
+          borderRadius: '16px 16px 0 0',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px',
+            borderBottom: '1px solid #efefef',
+            flexShrink: 0,
+          }}
+        >
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#262626' }}>Call History</h3>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex', color: '#262626' }}
+          >
+            <CloseIcon />
+          </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading ? (
-            <div className="flex justify-center py-10">
-              <div className="w-6 h-6 border-2 border-border border-t-accent rounded-full animate-spin-slow" />
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+              <Spinner />
             </div>
           ) : calls.length === 0 ? (
-            <p className="text-center text-muted text-sm py-12">No call logs found</p>
+            <p style={{ textAlign: 'center', color: '#8e8e8e', fontSize: 14, padding: '48px 0', margin: 0 }}>
+              No call logs found
+            </p>
           ) : (
             calls.map(c => {
               const partner = c.callerId?._id === c.receiverId?._id ? c.receiverId : (c.callerId || c.receiverId);
               return (
-                <div key={c._id} className="flex items-center justify-between px-4 py-3 hover:bg-surface2 rounded-xl border-b border-border/30">
-                  <div className="flex items-center gap-3">
-                    <Avatar user={partner} size={40} fontSize={14} />
-                    <div>
-                      <p className="text-sm font-semibold">{partner?.username || 'User'}</p>
-                      <p className="text-xs text-muted capitalize flex items-center gap-1">
-                        <span className={c.status === 'missed' ? 'text-danger font-medium' : ''}>
-                          {c.status}
-                        </span>
-                        • {c.callType} call • {timeAgo(c.createdAt)}
-                      </p>
-                    </div>
+                <div
+                  key={c._id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f3f3f3',
+                  }}
+                >
+                  <Avatar user={partner} size={44} fontSize={14} />
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: '#262626' }}>
+                      {partner?.username || 'User'}
+                    </p>
+                    <p style={{ fontSize: 12, margin: '3px 0 0', color: '#8e8e8e', textTransform: 'capitalize' }}>
+                      <span style={c.status === 'missed' ? { color: '#ed4956', fontWeight: 500 } : undefined}>
+                        {c.status}
+                      </span>
+                      {' · '}{c.callType} call{' · '}{timeAgo(c.createdAt)}
+                    </p>
                   </div>
                 </div>
               );
@@ -269,7 +558,7 @@ function CallHistoryModal({ onClose, onCallUser }) {
   );
 }
 
-// Chat Window
+/* ---------- Chat Window ---------- */
 function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
@@ -476,7 +765,7 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
     <div className="flex flex-col h-full bg-surface">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center gap-3 flex-shrink-0 bg-surface z-10 shadow-sm">
-        <button onClick={onBack} className="bg-transparent border-none cursor-pointer text-text p-1">
+        <button onClick={onBack} className="bg-transparent border-none cursor-pointer text-text p-1" aria-label="Back">
           <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <polyline points="15,18 9,12 15,6" />
           </svg>
@@ -499,7 +788,6 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
 
         {/* Action Buttons: Voice Call, Video Call */}
         <div className="flex items-center gap-2">
-          {/* Voice Call */}
           <button
             onClick={() => startCall(partnerUser || { _id: partnerId, username: partnerName }, 'voice')}
             className="w-8 h-8 rounded-full bg-surface2 flex items-center justify-center cursor-pointer text-text hover:text-accent transition-colors"
@@ -510,7 +798,6 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
             </svg>
           </button>
 
-          {/* Video Call */}
           <button
             onClick={() => startCall(partnerUser || { _id: partnerId, username: partnerName }, 'video')}
             className="w-8 h-8 rounded-full bg-surface2 flex items-center justify-center cursor-pointer text-text hover:text-accent transition-colors"
@@ -528,10 +815,10 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="w-6 h-6 border-2 border-border border-t-accent rounded-full animate-spin-slow" />
+            <Spinner />
           </div>
         ) : messages.length === 0 ? (
-          <p className="text-center text-muted text-sm py-16">No messages yet. Say hi! 👋</p>
+          <p className="text-center text-muted text-sm py-16">No messages yet. Say hi!</p>
         ) : (
           messages.map(msg => {
             const senderId = msg.sender?._id || msg.sender || msg.from?._id || msg.from;
@@ -540,18 +827,15 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
             return (
               <div key={msg._id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                 <div className="relative group max-w-[80%]">
-                  {/* Media Bubble */}
                   {msg.type === 'media' && msg.media ? (
                     <MediaBubble media={msg.media} isMine={isMine} onOpenLightbox={setLightboxImage} />
                   ) : (
-                    /* Text Bubble */
                     <div className={`px-3.5 py-2 rounded-2xl text-[14px] leading-relaxed shadow-sm ${isMine ? 'bg-accent text-white rounded-br-sm' : 'bg-surface2 text-text rounded-bl-sm'}`}>
                       {msg.text}
                       {msg.edited && <span className="text-[10px] opacity-60 ml-1">(edited)</span>}
                     </div>
                   )}
 
-                  {/* Time & Status */}
                   <p className={`text-[10px] text-muted mt-0.5 px-1 ${isMine ? 'text-right' : 'text-left'}`}>
                     {timeAgo(msg.createdAt)}
                   </p>
@@ -566,14 +850,13 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
       {/* Uploading progress indicator */}
       {uploadingMedia && (
         <div className="px-4 py-2 bg-surface2 border-t border-border flex items-center gap-2 text-xs text-accent">
-          <div className="w-3.5 h-3.5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <Spinner size={14} />
           Uploading attachment...
         </div>
       )}
 
       {/* Input Bar */}
       <div className="px-3 py-2.5 border-t border-border flex items-center gap-2 flex-shrink-0 bg-surface">
-        {/* Hidden File Input */}
         <input
           type="file"
           ref={fileInputRef}
@@ -596,14 +879,8 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
 
           {showAttachMenu && (
             <>
-              {/* Invisible Backdrop to close menu */}
-              <div
-                className="fixed inset-0 z-40 bg-transparent"
-                onClick={() => setShowAttachMenu(false)}
-              />
-              {/* Popover options menu */}
+              <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowAttachMenu(false)} />
               <div className="absolute bottom-12 left-0 z-50 bg-surface border border-border shadow-xl rounded-2xl p-1.5 flex flex-col min-w-[160px] animate-slide-up">
-                {/* Documents */}
                 <button
                   onClick={() => openFileInput('.pdf,.doc,.docx,.txt,.ppt,.pptx,.xls,.xlsx,.zip,application/*,text/*')}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface2 transition-colors cursor-pointer border-none bg-transparent text-left w-full"
@@ -619,7 +896,6 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
                   <span className="text-sm font-semibold text-text">Documents</span>
                 </button>
 
-                {/* Photos */}
                 <button
                   onClick={() => openFileInput('image/*')}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface2 transition-colors cursor-pointer border-none bg-transparent text-left w-full"
@@ -634,7 +910,6 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
                   <span className="text-sm font-semibold text-text">Photos</span>
                 </button>
 
-                {/* Videos */}
                 <button
                   onClick={() => openFileInput('video/*')}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface2 transition-colors cursor-pointer border-none bg-transparent text-left w-full"
@@ -672,12 +947,24 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
               onChange={(e) => { setText(e.target.value); handleTyping(); }}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="Message..."
-              className="flex-1 bg-surface2 rounded-full py-2 px-4 text-sm outline-none text-text border border-border"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                boxSizing: 'border-box',
+                padding: '10px 16px',
+                fontSize: 14,
+                color: '#262626',
+                background: '#fafafa',
+                border: '1px solid #dbdbdb',
+                borderRadius: 999,
+                outline: 'none',
+              }}
             />
 
             {text.trim() ? (
               <button
                 onClick={sendMessage}
+                aria-label="Send"
                 className="bg-accent border-none rounded-full w-9 h-9 flex items-center justify-center cursor-pointer flex-shrink-0 hover:scale-105 transition-transform"
               >
                 <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -702,9 +989,27 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
 
       {/* Lightbox Modal */}
       {lightboxImage && (
-        <div className="fixed inset-0 z-[900] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightboxImage(null)}>
+        <div
+          className="fixed inset-0 z-[900] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightboxImage(null)}
+        >
           <img src={lightboxImage} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
-          <button onClick={() => setLightboxImage(null)} className="absolute top-4 right-4 text-white text-2xl font-bold bg-transparent border-none cursor-pointer">✕</button>
+          <button
+            onClick={() => setLightboxImage(null)}
+            aria-label="Close"
+            style={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+              display: 'flex',
+            }}
+          >
+            <CloseIcon size={26} />
+          </button>
         </div>
       )}
 
@@ -719,7 +1024,7 @@ function ChatWindow({ partnerId, partnerName, partnerUser, onBack }) {
   );
 }
 
-// Media Bubble Renderer
+/* ---------- Media Bubble ---------- */
 function MediaBubble({ media, isMine, onOpenLightbox }) {
   const { fileType, storageUrl, originalFileName, fileSize } = media;
   const name = originalFileName || 'Attachment';
@@ -729,7 +1034,7 @@ function MediaBubble({ media, isMine, onOpenLightbox }) {
   if (fileType === 'image' || cat === 'image') {
     return (
       <div className="rounded-2xl overflow-hidden cursor-pointer shadow-sm border border-border" onClick={() => onOpenLightbox(storageUrl)}>
-        <img src={storageUrl} alt={name} className="max-w-[240px] max-h-[240px] object-cover block" />
+        <img src={storageUrl} alt={name} loading="lazy" decoding="async" className="max-w-[240px] max-h-[240px] object-cover block" />
       </div>
     );
   }
@@ -737,7 +1042,7 @@ function MediaBubble({ media, isMine, onOpenLightbox }) {
   if (fileType === 'video' || cat === 'video') {
     return (
       <div className="rounded-2xl overflow-hidden shadow-sm border border-border max-w-[260px] bg-black">
-        <video src={storageUrl} controls className="w-full h-full max-h-[240px] block" />
+        <video src={storageUrl} controls preload="metadata" className="w-full h-full max-h-[240px] block" />
       </div>
     );
   }
@@ -745,9 +1050,9 @@ function MediaBubble({ media, isMine, onOpenLightbox }) {
   if (fileType === 'audio' || cat === 'audio') {
     return (
       <div className={`p-3 rounded-2xl flex items-center gap-3 min-w-[200px] shadow-sm ${isMine ? 'bg-accent text-white rounded-br-sm' : 'bg-surface2 text-text rounded-bl-sm'}`}>
-        <span className="text-xl">🎵</span>
+        <MusicIcon />
         <div className="flex-1 min-w-0">
-          <audio src={storageUrl} controls className="w-full h-8 outline-none" />
+          <audio src={storageUrl} controls preload="metadata" className="w-full h-8 outline-none" />
           <p className="text-[10px] opacity-75 mt-0.5">{size}</p>
         </div>
       </div>
@@ -761,7 +1066,7 @@ function MediaBubble({ media, isMine, onOpenLightbox }) {
       rel="noopener noreferrer"
       className={`p-3 rounded-2xl flex items-center gap-3 shadow-sm max-w-[240px] no-underline ${isMine ? 'bg-accent text-white rounded-br-sm' : 'bg-surface2 text-text rounded-bl-sm'}`}
     >
-      <span className="text-2xl">{FILE_ICONS[cat] || '📄'}</span>
+      <FileIcon />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold truncate">{name}</p>
         <p className="text-[10px] opacity-75">{size}</p>
@@ -770,7 +1075,7 @@ function MediaBubble({ media, isMine, onOpenLightbox }) {
   );
 }
 
-// Media Gallery Modal
+/* ---------- Media Gallery Modal ---------- */
 function MediaGalleryModal({ chatId, onClose }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -783,27 +1088,84 @@ function MediaGalleryModal({ chatId, onClose }) {
   }, [chatId]);
 
   return (
-    <div className="fixed inset-0 z-[400] bg-black/60 flex items-end justify-center" onClick={onClose}>
-      <div className="bg-surface w-full max-w-[480px] rounded-t-2xl max-h-[80vh] flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <h3 className="text-base font-bold">Shared Media & Files</h3>
-          <button onClick={onClose} className="text-muted font-bold text-lg bg-transparent border-none cursor-pointer">✕</button>
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 400,
+        background: 'rgba(0,0,0,0.6)',
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        className="animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff',
+          width: '100%',
+          maxWidth: 480,
+          maxHeight: '80dvh',
+          borderRadius: '16px 16px 0 0',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 16,
+            borderBottom: '1px solid #efefef',
+            flexShrink: 0,
+          }}
+        >
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#262626' }}>Shared Media &amp; Files</h3>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', display: 'flex', color: '#262626' }}
+          >
+            <CloseIcon />
+          </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4">
+        <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
           {loading ? (
-            <div className="flex justify-center py-10">
-              <div className="w-6 h-6 border-2 border-border border-t-accent rounded-full animate-spin-slow" />
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+              <Spinner />
             </div>
           ) : items.length === 0 ? (
-            <p className="text-center text-muted text-sm py-12">No media shared yet</p>
+            <p style={{ textAlign: 'center', color: '#8e8e8e', fontSize: 14, padding: '48px 0', margin: 0 }}>
+              No media shared yet
+            </p>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               {items.map(m => (
-                <a key={m._id} href={m.storageUrl} target="_blank" rel="noopener noreferrer" className="aspect-square bg-surface2 rounded-lg overflow-hidden flex items-center justify-center border border-border">
+                <a
+                  key={m._id}
+                  href={m.storageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    aspectRatio: '1 / 1',
+                    background: '#fafafa',
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid #efefef',
+                    color: '#8e8e8e',
+                  }}
+                >
                   {m.fileType === 'image' ? (
-                    <img src={m.storageUrl} alt="" className="w-full h-full object-cover" />
+                    <img src={m.storageUrl} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <span className="text-2xl">{FILE_ICONS[m.fileType] || '📎'}</span>
+                    <FileIcon size={28} />
                   )}
                 </a>
               ))}

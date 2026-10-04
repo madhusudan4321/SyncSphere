@@ -63,7 +63,7 @@ const S = {
   },
   media: {
     width: '100%',
-    maxHeight: 600,
+    height: 'min(52dvh, 460px)',
     background: '#fafafa',
     display: 'flex',
     alignItems: 'center',
@@ -247,10 +247,10 @@ export default function PostCard({ post, onDelete, onUpdate }) {
             loading="lazy"
             decoding="async"
             onDoubleClick={toggleLike}
-            style={{ width: '100%', maxHeight: 600, objectFit: 'contain', display: 'block' }}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
           />
         ) : (
-          <div style={{ padding: '64px 0' }}>{Icons.image}</div>
+          <div>{Icons.image}</div>
         )}
       </div>
 

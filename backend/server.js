@@ -54,6 +54,7 @@ app.use('/api/stories',  require('./routes/stories'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/calls',    require('./routes/calls'));
 app.use('/api/media',    require('./routes/media'));
+app.use('/api/app',      require('./routes/appVersion'));
 
 // ── Global error handler ──────────────────────────────────────
 app.use((err, req, res, next) => {

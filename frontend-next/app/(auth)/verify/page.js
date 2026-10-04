@@ -8,11 +8,155 @@ import { useAuth } from '@/lib/auth-context';
 import api from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
+const styles = {
+  page: {
+    width: '100%',
+  },
+  container: {
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
+  logoWrap: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  brand: {
+    fontFamily: 'var(--font-dancing), "Dancing Script", cursive',
+    fontSize: 52,
+    fontWeight: 700,
+    lineHeight: 1.1,
+    margin: '4px 0 0',
+    background: 'linear-gradient(90deg, #4f46e5, #c026d3, #e11d48)',
+    WebkitBackgroundClip: 'text',
+    backgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    color: 'transparent',
+  },
+  card: {
+    background: '#ffffff',
+    border: '1px solid #dbdbdb',
+    borderRadius: 8,
+    padding: '28px 24px 20px',
+    marginBottom: 12,
+    boxSizing: 'border-box',
+  },
+  header: {
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #0095f6, #00d4ff)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 14px',
+  },
+  heading: {
+    fontSize: 17,
+    fontWeight: 600,
+    lineHeight: 1.4,
+    color: '#262626',
+    margin: 0,
+    fontFamily: 'var(--font-playfair), Georgia, serif',
+  },
+  subText: {
+    fontSize: 13,
+    color: '#737373',
+    lineHeight: 1.5,
+    margin: '6px 0 0',
+    wordBreak: 'break-all',
+  },
+  email: {
+    color: '#262626',
+    fontWeight: 600,
+  },
+  otpRow: {
+    display: 'flex',
+    gap: 8,
+    justifyContent: 'center',
+    margin: '20px 0 8px',
+  },
+  error: {
+    color: '#ed4956',
+    fontSize: 13,
+    textAlign: 'center',
+    margin: '6px 0 0',
+  },
+  button: {
+    width: '100%',
+    padding: '11px 0',
+    marginTop: 12,
+    borderRadius: 8,
+    border: 'none',
+    background: '#0095f6',
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: 600,
+    transition: 'opacity 0.15s',
+  },
+  resendWrap: {
+    textAlign: 'center',
+    fontSize: 13,
+    color: '#737373',
+    margin: '16px 0 0',
+  },
+  resendBtn: {
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    color: '#0095f6',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  switchCard: {
+    background: '#ffffff',
+    border: '1px solid #dbdbdb',
+    borderRadius: 8,
+    padding: '20px 16px',
+    textAlign: 'center',
+    fontSize: 14,
+    boxSizing: 'border-box',
+  },
+  link: {
+    color: '#0095f6',
+    fontWeight: 600,
+    textDecoration: 'none',
+  },
+};
+
+const otpInputBase = {
+  flex: '1 1 0',
+  minWidth: 0,
+  maxWidth: 46,
+  height: 52,
+  boxSizing: 'border-box',
+  padding: 0,
+  borderRadius: 10,
+  border: '2px solid #dbdbdb',
+  background: '#fafafa',
+  color: '#262626',
+  fontSize: 22,
+  fontWeight: 700,
+  textAlign: 'center',
+  outline: 'none',
+  caretColor: '#0095f6',
+  transition: 'border-color 0.15s, box-shadow 0.15s, background 0.15s',
+};
+
 export default function VerifyPage() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [focusedIdx, setFocusedIdx] = useState(-1);
   const inputRefs = useRef([]);
   const { login } = useAuth();
   const router = useRouter();
@@ -22,7 +166,7 @@ export default function VerifyPage() {
 
   useEffect(() => {
     if (cooldown <= 0) return;
-    const timer = setInterval(() => setCooldown(c => c - 1), 1000);
+    const timer = setInterval(() => setCooldown((c) => c - 1), 1000);
     return () => clearInterval(timer);
   }, [cooldown]);
 
@@ -41,7 +185,7 @@ export default function VerifyPage() {
     if (value && idx < 5) {
       inputRefs.current[idx + 1]?.focus();
     }
-    if (next.every(d => d !== '')) {
+    if (next.every((d) => d !== '')) {
       handleVerify(next.join(''));
     }
   };
@@ -86,86 +230,111 @@ export default function VerifyPage() {
     }
   };
 
+  const incomplete = otp.some((d) => d === '');
+
   return (
-    <>
-      <div className="text-center flex flex-col items-center gap-0 mb-1">
-        <Image
-          src="/logo.png"
-          alt="SyncSphere"
-          width={150}
-          height={150}
-          className="object-contain"
-          style={{ mixBlendMode: 'multiply' }}
-          priority
-        />
-        <h1 className="font-[family-name:var(--font-dancing)] text-[52px] font-bold bg-auth-gradient leading-tight mb-2">
-          SyncSphere
-        </h1>
-      </div>
+    <div style={styles.page}>
+      <div style={styles.container}>
+        {/* Logo */}
+        <div style={styles.logoWrap}>
+          <Image
+            src="/logo.png"
+            alt="SyncSphere"
+            width={120}
+            height={120}
+            style={{ objectFit: 'contain', mixBlendMode: 'multiply' }}
+            priority
+          />
+          <h1 style={styles.brand}>SyncSphere</h1>
+        </div>
 
-      <div className="bg-surface border border-border rounded-[4px] px-8 pt-7 pb-5 mb-2.5">
-        <div className="text-center mb-5">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0095f6] to-[#00d4ff] flex items-center justify-center mx-auto mb-3.5">
-            <svg width="28" height="28" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
+        {/* Verify card */}
+        <div style={styles.card}>
+          <div style={styles.header}>
+            <div style={styles.iconCircle}>
+              <svg width="28" height="28" fill="none" stroke="#fff" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+            </div>
+            <p style={styles.heading}>Verify your email</p>
+            <p style={styles.subText}>
+              We sent a 6-digit code to
+              <br />
+              <span style={styles.email}>{email}</span>
+            </p>
           </div>
-          <p className="text-[16px] font-semibold font-[family-name:var(--font-playfair)] leading-[1.4] m-0">
-            Verify your email
-          </p>
-          <p className="text-[13px] text-muted mt-1.5">
-            We sent a 6-digit code to<br />
-            <strong>{email}</strong>
-          </p>
-        </div>
 
-        <div className="flex gap-2.5 justify-center my-5 mb-2">
-          {otp.map((digit, i) => (
-            <input
-              key={i}
-              ref={el => inputRefs.current[i] = el}
-              type="text"
-              inputMode="numeric"
-              maxLength={1}
-              value={digit}
-              onChange={(e) => handleChange(i, e.target.value)}
-              onKeyDown={(e) => handleKeyDown(i, e)}
-              className="w-[46px] h-[54px] rounded-[12px] border-2 border-border bg-surface2 text-text text-[22px] font-bold text-center outline-none transition-all focus:border-accent focus:shadow-[0_0_0_3px_rgba(0,149,246,0.15)] focus:scale-[1.06]"
-              style={{ caretColor: 'var(--color-accent)' }}
-            />
-          ))}
-        </div>
+          {/* OTP inputs */}
+          <div style={styles.otpRow}>
+            {otp.map((digit, i) => {
+              const isFocused = focusedIdx === i;
+              return (
+                <input
+                  key={i}
+                  ref={(el) => (inputRefs.current[i] = el)}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleChange(i, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(i, e)}
+                  onFocus={() => setFocusedIdx(i)}
+                  onBlur={() => setFocusedIdx(-1)}
+                  style={{
+                    ...otpInputBase,
+                    ...(isFocused
+                      ? {
+                          borderColor: '#0095f6',
+                          background: '#ffffff',
+                          boxShadow: '0 0 0 3px rgba(0,149,246,0.15)',
+                        }
+                      : {}),
+                  }}
+                />
+              );
+            })}
+          </div>
 
-        {error && (
-          <p className="text-danger text-xs text-center mt-1.5 mb-0 animate-shake">{error}</p>
-        )}
-
-        <button
-          onClick={() => handleVerify()}
-          disabled={loading || otp.some(d => d === '')}
-          className="w-full py-[9px] bg-accent text-white border-none rounded-[8px] text-[14px] font-semibold cursor-pointer mt-2 transition-opacity hover:opacity-85 disabled:opacity-60"
-        >
-          {loading ? 'Verifying...' : 'Verify Email'}
-        </button>
-
-        <p className="text-center text-[13px] text-muted mt-3.5">
-          Didn&apos;t receive it?{' '}
-          {cooldown > 0 ? (
-            <span className="text-muted">Resend in {cooldown}s</span>
-          ) : (
-            <span onClick={handleResend} className="text-accent cursor-pointer font-semibold">
-              Resend OTP
-            </span>
+          {error && (
+            <p className="animate-shake" style={styles.error}>
+              {error}
+            </p>
           )}
-        </p>
-      </div>
 
-      <div className="bg-surface border border-border rounded-[4px] py-3.5 text-center text-[13px] text-muted">
-        <Link href="/register" className="text-accent font-semibold cursor-pointer hover:underline">
-          ← Back to Sign Up
-        </Link>
+          <button
+            type="button"
+            onClick={() => handleVerify()}
+            disabled={loading || incomplete}
+            style={{
+              ...styles.button,
+              opacity: loading || incomplete ? 0.6 : 1,
+              cursor: loading || incomplete ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {loading ? 'Verifying...' : 'Verify Email'}
+          </button>
+
+          <p style={styles.resendWrap}>
+            Didn&apos;t receive it?{' '}
+            {cooldown > 0 ? (
+              <span>Resend in {cooldown}s</span>
+            ) : (
+              <button type="button" onClick={handleResend} style={styles.resendBtn}>
+                Resend OTP
+              </button>
+            )}
+          </p>
+        </div>
+
+        {/* Back to sign up */}
+        <div style={styles.switchCard}>
+          <Link href="/register" style={styles.link}>
+            ← Back to Sign Up
+          </Link>
+        </div>
       </div>
-    </>
+    </div>
   );
 }

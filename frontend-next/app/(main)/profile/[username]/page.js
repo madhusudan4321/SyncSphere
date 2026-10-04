@@ -8,6 +8,84 @@ import { useAuth } from '@/lib/auth-context';
 import { useCall } from '@/lib/call-context';
 import { useToast } from '@/components/ui/Toast';
 
+const iconProps = {
+  width: 22,
+  height: 22,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+};
+
+const Icons = {
+  block: (
+    <svg {...iconProps}>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" />
+    </svg>
+  ),
+  flag: (
+    <svg {...iconProps}>
+      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+      <line x1="4" y1="22" x2="4" y2="15" />
+    </svg>
+  ),
+  phone: (
+    <svg {...iconProps} width={18} height={18}>
+      <path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.4 1.8.7 2.7a2 2 0 01-.5 2.1L8.1 9.8a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.7.7a2 2 0 011.7 2z" />
+    </svg>
+  ),
+  video: (
+    <svg {...iconProps} width={18} height={18}>
+      <polygon points="23 7 16 12 23 17 23 7" />
+      <rect x="1" y="5" width="15" height="14" rx="2" />
+    </svg>
+  ),
+};
+
+function MenuItem({ icon, label, value, onClick, danger }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        padding: '16px 24px',
+        background: 'none',
+        border: 'none',
+        borderTop: '1px solid #efefef',
+        textAlign: 'left',
+        cursor: 'pointer',
+        fontSize: 15,
+        fontWeight: 600,
+        color: danger ? '#ed4956' : '#262626',
+      }}
+    >
+      <span style={{ display: 'flex' }}>{icon}</span>
+      <span style={{ flex: 1 }}>{label}</span>
+      {value && (
+        <span style={{ fontSize: 13, fontWeight: 500, color: '#737373' }}>{value}</span>
+      )}
+    </button>
+  );
+}
+
+const callButtonStyle = {
+  padding: '8px 12px',
+  background: '#efefef',
+  color: '#262626',
+  border: '1px solid #dbdbdb',
+  borderRadius: 8,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+};
+
 export default function UserProfilePage() {
   const { username } = useParams();
   const { user } = useAuth();
@@ -102,6 +180,13 @@ export default function UserProfilePage() {
 
   const isPrivateAndNotFollowing = profile.isPrivate && followStatus !== 'following';
 
+  const followBtnStyle =
+    followStatus === 'following'
+      ? { background: '#efefef', color: '#262626', border: '1px solid #dbdbdb' }
+      : followStatus === 'requested'
+      ? { background: '#efefef', color: '#737373', border: '1px solid #dbdbdb' }
+      : { background: '#0095f6', color: '#ffffff', border: '1px solid #0095f6' };
+
   return (
     <div className="w-full h-full overflow-y-auto bg-surface">
       {/* Back button + username header */}
@@ -165,38 +250,52 @@ export default function UserProfilePage() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 w-full">
+        <div style={{ display: 'flex', gap: 8, width: '100%' }}>
           <button
             onClick={handleFollow}
-            className={`flex-1 py-2 rounded-lg text-sm font-semibold cursor-pointer transition-colors border-none ${
-              followStatus === 'following'
-                ? 'bg-surface2 border border-border text-text'
-                : followStatus === 'requested'
-                ? 'bg-surface2 border border-border text-muted'
-                : 'bg-accent text-white'
-            }`}
+            style={{
+              flex: 1,
+              padding: '8px 0',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              ...followBtnStyle,
+            }}
           >
             {followStatus === 'following' ? 'Following' : followStatus === 'requested' ? 'Requested' : 'Follow'}
           </button>
           <button
             onClick={() => router.push('/chat')}
-            className="flex-1 py-2 bg-surface2 border border-border rounded-lg text-sm font-semibold cursor-pointer hover:bg-border transition-colors text-text"
+            style={{
+              flex: 1,
+              padding: '8px 0',
+              background: '#efefef',
+              color: '#262626',
+              border: '1px solid #dbdbdb',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
           >
             Message
           </button>
           <button
             onClick={() => startCall(profile, 'voice')}
-            className="px-3 py-2 bg-surface2 border border-border rounded-lg text-sm font-semibold cursor-pointer hover:bg-border transition-colors text-text"
             title="Voice Call"
+            aria-label="Voice Call"
+            style={callButtonStyle}
           >
-            📞
+            {Icons.phone}
           </button>
           <button
             onClick={() => startCall(profile, 'video')}
-            className="px-3 py-2 bg-surface2 border border-border rounded-lg text-sm font-semibold cursor-pointer hover:bg-border transition-colors text-text"
             title="Video Call"
+            aria-label="Video Call"
+            style={callButtonStyle}
           >
-            📹
+            {Icons.video}
           </button>
         </div>
       </div>
@@ -232,8 +331,10 @@ export default function UserProfilePage() {
                 {post.image ? (
                   <img src={post.image} alt="" className="w-full h-full object-cover block hover:scale-105 transition-transform" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[40px] bg-surface2">
-                    {post.emoji || '📷'}
+                  <div className="w-full h-full flex items-center justify-center bg-surface2 text-muted">
+                    <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21,15 16,10 5,21" />
+                    </svg>
                   </div>
                 )}
               </div>
@@ -244,18 +345,58 @@ export default function UserProfilePage() {
 
       {/* Menu Bottom Sheet */}
       {showMenu && (
-        <div className="fixed inset-0 z-[300] bg-black/50 flex items-end justify-center" onClick={() => setShowMenu(false)}>
-          <div className="bg-surface w-full max-w-[480px] rounded-t-2xl overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="p-3 flex justify-center"><div className="w-9 h-1 bg-border rounded-full" /></div>
-            <button onClick={handleBlock} className="w-full flex items-center gap-4 px-6 py-4 cursor-pointer border-b border-border hover:bg-surface2 bg-transparent text-left text-[15px] font-semibold text-danger">
-              🚫 Block @{username}
-            </button>
-            {['Spam or fake account', 'Inappropriate content', 'Harassment', 'Scam or fraud'].map(reason => (
-              <button key={reason} onClick={() => handleReport(reason)} className="w-full flex items-center gap-4 px-6 py-4 cursor-pointer border-b border-border hover:bg-surface2 bg-transparent text-left text-[15px] font-semibold text-text">
-                ⚠️ Report: {reason}
-              </button>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 300,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+          }}
+          onClick={() => setShowMenu(false)}
+        >
+          <div
+            className="animate-slide-up"
+            style={{
+              background: '#fff',
+              width: '100%',
+              maxWidth: 480,
+              borderRadius: '16px 16px 0 0',
+              overflow: 'hidden',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 12 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#dbdbdb' }} />
+            </div>
+
+            <MenuItem icon={Icons.block} label={`Block @${username}`} danger onClick={handleBlock} />
+            {['Spam or fake account', 'Inappropriate content', 'Harassment', 'Scam or fraud'].map((reason) => (
+              <MenuItem
+                key={reason}
+                icon={Icons.flag}
+                label={`Report: ${reason}`}
+                onClick={() => handleReport(reason)}
+              />
             ))}
-            <button onClick={() => setShowMenu(false)} className="w-full py-4 text-center text-[15px] font-semibold text-muted cursor-pointer hover:bg-surface2 bg-transparent border-none">
+
+            <button
+              type="button"
+              onClick={() => setShowMenu(false)}
+              style={{
+                width: '100%',
+                padding: '16px 0',
+                background: 'none',
+                border: 'none',
+                borderTop: '1px solid #efefef',
+                fontSize: 15,
+                fontWeight: 600,
+                color: '#737373',
+                cursor: 'pointer',
+              }}
+            >
               Cancel
             </button>
           </div>

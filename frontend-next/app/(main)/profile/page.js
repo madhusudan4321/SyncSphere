@@ -7,6 +7,80 @@ import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast';
 import { useRouter } from 'next/navigation';
 
+const iconProps = {
+  width: 22,
+  height: 22,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+};
+
+const Icons = {
+  edit: (
+    <svg {...iconProps}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+    </svg>
+  ),
+  lock: (
+    <svg {...iconProps}>
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0110 0v4" />
+    </svg>
+  ),
+  block: (
+    <svg {...iconProps}>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" />
+    </svg>
+  ),
+  phone: (
+    <svg {...iconProps}>
+      <path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.4 1.8.7 2.7a2 2 0 01-.5 2.1L8.1 9.8a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.7.7a2 2 0 011.7 2z" />
+    </svg>
+  ),
+  logout: (
+    <svg {...iconProps}>
+      <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  ),
+};
+
+function MenuItem({ icon, label, value, onClick, danger }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        padding: '16px 24px',
+        background: 'none',
+        border: 'none',
+        borderTop: '1px solid #efefef',
+        textAlign: 'left',
+        cursor: 'pointer',
+        fontSize: 15,
+        fontWeight: 600,
+        color: danger ? '#ed4956' : '#262626',
+      }}
+    >
+      <span style={{ display: 'flex' }}>{icon}</span>
+      <span style={{ flex: 1 }}>{label}</span>
+      {value && (
+        <span style={{ fontSize: 13, fontWeight: 500, color: '#737373' }}>{value}</span>
+      )}
+    </button>
+  );
+}
+
 export default function ProfilePage() {
   const { user, logout, updateUser } = useAuth();
   const { showToast } = useToast();
@@ -182,7 +256,6 @@ export default function ProfilePage() {
           >
             Edit Profile
           </button>
-
           <button
             onClick={togglePrivacy}
             style={{
@@ -243,8 +316,10 @@ export default function ProfilePage() {
                 {post.image ? (
                   <img src={post.image} alt="" className="w-full h-full object-cover block hover:scale-105 transition-transform" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[40px] bg-surface2">
-                    {post.emoji || '📷'}
+                  <div className="w-full h-full flex items-center justify-center bg-surface2 text-muted">
+                    <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21,15 16,10 5,21" />
+                    </svg>
                   </div>
                 )}
               </div>
@@ -253,79 +328,82 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Settings & Options Menu */}
+      {/* Settings Menu */}
       {showMenu && (
-        <div className="fixed inset-0 z-[300] bg-black/65 flex items-end justify-center" style={{ animation: 'fadeInOverlay .2s' }} onClick={() => setShowMenu(false)}>
-          <div className="bg-surface w-full max-w-[480px] rounded-t-2xl overflow-hidden animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="p-3 flex justify-center"><div className="w-9 h-1 bg-border rounded-full" /></div>
-            <h3 className="text-center text-[15px] font-bold pb-2">Settings & Options</h3>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 300,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+          }}
+          onClick={() => setShowMenu(false)}
+        >
+          <div
+            className="animate-slide-up"
+            style={{
+              background: '#fff',
+              width: '100%',
+              maxWidth: 480,
+              borderRadius: '16px 16px 0 0',
+              overflow: 'hidden',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 12 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#dbdbdb' }} />
+            </div>
 
-            {/* Edit Profile */}
-            <button
+            <h3 style={{ textAlign: 'center', fontSize: 15, fontWeight: 700, margin: '0 0 12px' }}>
+              Settings
+            </h3>
+
+            <MenuItem
+              icon={Icons.edit}
+              label="Edit Profile"
               onClick={() => { setShowEditModal(true); setShowMenu(false); }}
-              className="w-full flex items-center gap-4 px-6 py-4 cursor-pointer border-t border-border hover:bg-surface2 bg-transparent text-left"
-            >
-              <span className="text-accent text-lg">✏️</span>
-              <div>
-                <p className="text-[15px] font-semibold text-text">Edit Profile</p>
-                <p className="text-[12px] text-muted">Update your name, bio and website</p>
-              </div>
-              <span className="ml-auto text-muted text-sm">›</span>
-            </button>
-
-            {/* Account Privacy */}
-            <button
+            />
+            <MenuItem
+              icon={Icons.lock}
+              label="Account Privacy"
+              value={p.isPrivate ? 'Private' : 'Public'}
               onClick={() => { togglePrivacy(); setShowMenu(false); }}
-              className="w-full flex items-center gap-4 px-6 py-4 cursor-pointer border-t border-border hover:bg-surface2 bg-transparent text-left"
-            >
-              <span className="text-lg">🔒</span>
-              <div>
-                <p className="text-[15px] font-semibold text-text">Account Privacy</p>
-                <p className="text-[12px] text-muted">Currently {p.isPrivate ? 'Private' : 'Public'} — tap to make {p.isPrivate ? 'Public' : 'Private'}</p>
-              </div>
-              <span className="ml-auto text-muted text-sm">›</span>
-            </button>
-
-            {/* Blocked Users */}
-            <button
+            />
+            <MenuItem
+              icon={Icons.block}
+              label="Blocked Users"
               onClick={() => { setShowBlockedModal(true); setShowMenu(false); }}
-              className="w-full flex items-center gap-4 px-6 py-4 cursor-pointer border-t border-border hover:bg-surface2 bg-transparent text-left"
-            >
-              <span className="text-danger text-lg">🚫</span>
-              <div>
-                <p className="text-[15px] font-semibold text-text">Blocked Users</p>
-                <p className="text-[12px] text-muted">Manage users you have blocked</p>
-              </div>
-              <span className="ml-auto text-muted text-sm">›</span>
-            </button>
-
-            {/* Call History */}
-            <button
+            />
+            <MenuItem
+              icon={Icons.phone}
+              label="Call History"
               onClick={() => { router.push('/chat'); setShowMenu(false); }}
-              className="w-full flex items-center gap-4 px-6 py-4 cursor-pointer border-t border-border hover:bg-surface2 bg-transparent text-left"
-            >
-              <span className="text-accent text-lg">📞</span>
-              <div>
-                <p className="text-[15px] font-semibold text-text">Call History</p>
-                <p className="text-[12px] text-muted">Voice & video call logs</p>
-              </div>
-              <span className="ml-auto text-muted text-sm">›</span>
-            </button>
-
-            {/* Logout */}
-            <button
+            />
+            <MenuItem
+              icon={Icons.logout}
+              label="Logout"
+              danger
               onClick={() => { logout(); setShowMenu(false); }}
-              className="w-full flex items-center gap-4 px-6 py-4 cursor-pointer border-t border-border hover:bg-surface2 bg-transparent text-left"
-            >
-              <span className="text-danger text-lg">🚪</span>
-              <div>
-                <p className="text-[15px] font-semibold text-danger">Logout</p>
-                <p className="text-[12px] text-muted">Sign out of your account</p>
-              </div>
-              <span className="ml-auto text-muted text-sm">›</span>
-            </button>
+            />
 
-            <button onClick={() => setShowMenu(false)} className="w-full py-4 text-center text-[15px] font-semibold text-muted cursor-pointer hover:bg-surface2 bg-transparent border-t border-border border-b-0">
+            <button
+              type="button"
+              onClick={() => setShowMenu(false)}
+              style={{
+                width: '100%',
+                padding: '16px 0',
+                background: 'none',
+                border: 'none',
+                borderTop: '1px solid #efefef',
+                fontSize: 15,
+                fontWeight: 600,
+                color: '#737373',
+                cursor: 'pointer',
+              }}
+            >
               Cancel
             </button>
           </div>
@@ -432,7 +510,11 @@ function BlockedUsersModal({ onClose }) {
       <div className="bg-surface rounded-2xl w-full max-w-[380px] overflow-hidden animate-slide-up max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
           <h3 className="text-base font-bold">Blocked Users</h3>
-          <button onClick={onClose} className="text-lg font-bold text-muted bg-transparent border-none cursor-pointer">✕</button>
+          <button onClick={onClose} aria-label="Close" className="text-muted bg-transparent border-none cursor-pointer flex">
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? (

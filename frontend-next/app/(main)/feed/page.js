@@ -6,30 +6,48 @@ import StoryBar from '@/components/stories/StoryBar';
 import api from '@/lib/api';
 import Spinner from '@/components/ui/Spinner';
 
+const PAGE_SIZE = 10;
+
 export default function FeedPage() {
   const [posts, setPosts] = useState([]);
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+
   const sentinelRef = useRef(null);
   const containerRef = useRef(null);
+  const pageRef = useRef(1);
+  const fetchingRef = useRef(false);
+  const hasMoreRef = useRef(true);
 
   const loadFeed = useCallback(async (pageNum, append = false) => {
-    if (pageNum === 1) setLoading(true);
-    else setLoadingMore(true);
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+
     try {
-      const data = await api.get(`/posts/feed?page=${pageNum}&limit=10`);
+      const data = await api.get(`/posts/feed?page=${pageNum}&limit=${PAGE_SIZE}`);
       const newPosts = data.posts || data;
+
       if (append) {
-        setPosts(prev => [...prev, ...newPosts]);
+        setPosts((prev) => {
+          const seen = new Set(prev.map((p) => p._id));
+          return [...prev, ...newPosts.filter((p) => !seen.has(p._id))];
+        });
       } else {
         setPosts(newPosts);
       }
-      setHasMore(newPosts.length >= 10);
+
+      const more = newPosts.length >= PAGE_SIZE;
+      hasMoreRef.current = more;
+      setHasMore(more);
     } catch (err) {
       console.error('Failed to load feed:', err);
+      if (append) pageRef.current -= 1; // allow retry of the same page
     } finally {
+      fetchingRef.current = false;
       setLoading(false);
       setLoadingMore(false);
     }
@@ -40,33 +58,49 @@ export default function FeedPage() {
     loadFeed(1);
   }, [loadFeed]);
 
-  // Infinite scroll
+  // Infinite scroll: observer is created once per list state, not on every page change
   useEffect(() => {
-    if (!sentinelRef.current) return;
+    const sentinel = sentinelRef.current;
+    const root = containerRef.current;
+    if (!sentinel || !root) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          const nextPage = page + 1;
-          setPage(nextPage);
-          loadFeed(nextPage, true);
+        if (entries[0].isIntersecting && hasMoreRef.current && !fetchingRef.current) {
+          pageRef.current += 1;
+          loadFeed(pageRef.current, true);
         }
       },
-      { threshold: 0.1 }
+      {
+        root,                    // the scrolling container, not the viewport
+        rootMargin: '0px 0px 600px 0px', // start loading before the user reaches the end
+        threshold: 0,
+      }
     );
-    observer.observe(sentinelRef.current);
+
+    observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, loadingMore, page, loadFeed]);
+  }, [loading, hasMore, loadFeed]);
 
-  const handleDelete = (postId) => {
-    setPosts(prev => prev.filter(p => p._id !== postId));
-  };
+  const handleDelete = useCallback((postId) => {
+    setPosts((prev) => prev.filter((p) => p._id !== postId));
+  }, []);
 
-  const handleUpdate = (postId, updates) => {
-    setPosts(prev => prev.map(p => p._id === postId ? { ...p, ...updates } : p));
-  };
+  const handleUpdate = useCallback((postId, updates) => {
+    setPosts((prev) => prev.map((p) => (p._id === postId ? { ...p, ...updates } : p)));
+  }, []);
 
   return (
-    <div ref={containerRef} className="w-full h-full overflow-y-auto [scrollbar-width:none]">
+    <div
+      ref={containerRef}
+      className="w-full h-full overflow-y-auto"
+      style={{
+        scrollbarWidth: 'none',
+        overscrollBehaviorY: 'contain',
+        WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-y',
+      }}
+    >
       <div className="w-full pb-4">
         {/* Stories */}
         <StoryBar />
@@ -74,7 +108,7 @@ export default function FeedPage() {
         {/* Loading skeleton */}
         {loading ? (
           <div className="flex flex-col gap-0">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="bg-surface border-b border-border animate-pulse">
                 <div className="flex items-center gap-2.5 px-3.5 py-2.5">
                   <div className="w-8 h-8 rounded-full bg-surface2" />
@@ -98,21 +132,24 @@ export default function FeedPage() {
           </div>
         ) : (
           <>
-            {posts.map(post => (
-              <PostCard
+            {posts.map((post) => (
+              <div
                 key={post._id}
-                post={post}
-                onDelete={handleDelete}
-                onUpdate={handleUpdate}
-              />
+                style={{
+                  contentVisibility: 'auto',
+                  containIntrinsicSize: 'auto 560px',
+                }}
+              >
+                <PostCard post={post} onDelete={handleDelete} onUpdate={handleUpdate} />
+              </div>
             ))}
 
             {/* Infinite scroll sentinel */}
-            <div ref={sentinelRef} className="h-4">
+            <div ref={sentinelRef} style={{ minHeight: 16 }}>
               {loadingMore && <Spinner size={24} />}
             </div>
 
-            {!hasMore && posts.length > 0 && (
+            {!hasMore && (
               <p className="text-center text-muted text-sm py-6">You&apos;re all caught up!</p>
             )}
           </>

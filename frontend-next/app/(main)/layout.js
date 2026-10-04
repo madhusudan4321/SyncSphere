@@ -35,7 +35,7 @@ export default function MainLayout({ children }) {
         <style>{`
           @keyframes ss-spin { to { transform: rotate(360deg); } }
         `}</style>
-  
+
         <h1
           style={{
             fontFamily: 'var(--font-dancing), "Dancing Script", cursive',
@@ -54,7 +54,7 @@ export default function MainLayout({ children }) {
         >
           SyncSphere
         </h1>
-  
+
         <div
           style={{
             width: 32,
@@ -77,21 +77,37 @@ export default function MainLayout({ children }) {
   return (
     <SocketProvider>
       <CallProvider>
-        {/* App Shell — Centered 480px Instagram container on desktop, 100% on mobile */}
-        <div className="w-full max-w-[480px] h-dvh flex flex-col bg-surface relative shadow-[0_0_40px_rgba(0,0,0,0.08)] overflow-hidden mx-auto">
-          {/* Top Nav — hidden on /chat tab to match legacy frontend */}
+        {/* App Shell — Centered 480px container on desktop, 100% on mobile.
+            The blur shadow is desktop-only (sm:) because it slows scrolling on phones. */}
+        <div
+          className="w-full max-w-[480px] h-dvh flex flex-col bg-surface relative sm:shadow-[0_0_40px_rgba(0,0,0,0.08)] overflow-hidden mx-auto"
+          style={{ overscrollBehavior: 'none' }}
+        >
+          {/* Top Nav — hidden on /chat tab */}
           {!hideTopHeader && (
             <header className="bg-surface border-b border-border px-4 h-[54px] w-full flex items-center justify-center flex-shrink-0 z-10">
-              <div className="flex items-center gap-1">
-                <span className="font-[family-name:var(--font-dancing)] text-[28px] font-bold bg-logo-gradient">
-                  SyncSphere
-                </span>
-              </div>
+              <span
+                style={{
+                  fontFamily: 'var(--font-dancing), "Dancing Script", cursive',
+                  fontSize: 28,
+                  fontWeight: 700,
+                  lineHeight: 1.3,
+                  padding: '0 6px 6px',
+                  display: 'inline-block',
+                  background: 'linear-gradient(90deg, #4f46e5, #c026d3, #e11d48)',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  color: 'transparent',
+                }}
+              >
+                SyncSphere
+              </span>
             </header>
           )}
 
-          {/* Content Area */}
-          <main className="flex-1 w-full overflow-hidden relative">
+          {/* Content Area — min-h-0 lets the inner scroll container shrink and scroll properly */}
+          <main className="flex-1 min-h-0 w-full overflow-hidden relative">
             {children}
           </main>
 

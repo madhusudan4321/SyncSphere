@@ -1,5 +1,5 @@
 'use client';
-
+import UpdateChecker from '@/components/ui/UpdateChecker';
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
@@ -116,6 +116,7 @@ export default function MainLayout({ children }) {
 
           {/* Call UI Overlay */}
           <CallOverlay />
+          <UpdateChecker />
         </div>
       </CallProvider>
     </SocketProvider>

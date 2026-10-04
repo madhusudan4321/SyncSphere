@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/ui/Toast';
 import api from '@/lib/api';
 import { timeAgo } from '@/lib/utils';
+import { createPortal } from 'react-dom';
 
 const iconProps = {
   width: 22,
@@ -113,6 +114,59 @@ function MenuItem({ icon, label, onClick, danger }) {
   );
 }
 
+function BottomSheet({ onClose, children }) {
+  const [closing, setClosing] = useState(false);
+
+  const close = () => {
+    setClosing(true);
+    setTimeout(onClose, 180);
+  };
+
+  return createPortal(
+    <>
+      <style>{`
+        @keyframes ss-fade-in { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes ss-fade-out { from { opacity: 1 } to { opacity: 0 } }
+        @keyframes ss-sheet-in { from { transform: translateY(100%) } to { transform: translateY(0) } }
+        @keyframes ss-sheet-out { from { transform: translateY(0) } to { transform: translateY(100%) } }
+      `}</style>
+      <div
+        onClick={close}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1000,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          animation: `${closing ? 'ss-fade-out' : 'ss-fade-in'} 0.18s ease forwards`,
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            background: '#fff',
+            width: '100%',
+            maxWidth: 480,
+            borderRadius: '16px 16px 0 0',
+            overflow: 'hidden',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            willChange: 'transform',
+            animation: `${closing ? 'ss-sheet-out' : 'ss-sheet-in'} 0.22s cubic-bezier(0.32, 0.72, 0, 1) forwards`,
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 12 }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#dbdbdb' }} />
+          </div>
+          {children(close)}
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+}
+
 export default function PostCard({ post, onDelete, onUpdate }) {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -181,61 +235,40 @@ export default function PostCard({ post, onDelete, onUpdate }) {
 
       {/* Post Menu */}
       {showMenu && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 300,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-          }}
-          onClick={() => setShowMenu(false)}
-        >
-          <div
-            style={{
-              background: '#fff',
-              width: '100%',
-              maxWidth: 480,
-              borderRadius: '16px 16px 0 0',
-              overflow: 'hidden',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 12 }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: '#dbdbdb' }} />
-            </div>
-            {isOwn && (
-              <>
-                <MenuItem
-                  icon={Icons.edit}
-                  label="Edit Caption"
-                  onClick={() => { setEditingCaption(true); setShowMenu(false); }}
-                />
-                <MenuItem icon={Icons.trash} label="Delete Post" danger onClick={deletePost} />
-              </>
-            )}
-            <MenuItem icon={Icons.link} label="Share" onClick={sharePost} />
-            <button
-              type="button"
-              onClick={() => setShowMenu(false)}
-              style={{
-                width: '100%',
-                padding: '16px 0',
-                background: 'none',
-                border: 'none',
-                borderTop: '1px solid #efefef',
-                fontSize: 15,
-                fontWeight: 600,
-                color: '#737373',
-                cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <BottomSheet onClose={() => setShowMenu(false)}>
+          {(close) => (
+            <>
+              {isOwn && (
+                <>
+                  <MenuItem
+                    icon={Icons.edit}
+                    label="Edit Caption"
+                    onClick={() => { setEditingCaption(true); close(); }}
+                  />
+                  <MenuItem icon={Icons.trash} label="Delete Post" danger onClick={deletePost} />
+                </>
+              )}
+              <MenuItem icon={Icons.link} label="Share" onClick={sharePost} />
+              <button
+                type="button"
+                onClick={close}
+                style={{
+                  width: '100%',
+                  padding: '16px 0',
+                  background: 'none',
+                  border: 'none',
+                  borderTop: '1px solid #efefef',
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: '#737373',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </BottomSheet>
       )}
 
       {/* Image */}

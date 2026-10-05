@@ -113,15 +113,29 @@ export default function ChatPage() {
   useEffect(() => { loadThreads(); }, [loadThreads]);
 
   // Open a chat directly when coming from a profile's Message button
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem('open_chat');
-      if (!raw) return;
-      sessionStorage.removeItem('open_chat');
-      const u = JSON.parse(raw);
-      setSelectedChat({ userId: u._id, username: u.username, user: u });
-    } catch {}
-  }, []);
+    useEffect(() => {
+      let cancelled = false;
+      (async () => {
+        try {
+          const raw = sessionStorage.getItem('open_chat');
+          if (raw) {
+            sessionStorage.removeItem('open_chat');
+            const u = JSON.parse(raw);
+            setSelectedChat({ userId: u._id, username: u.username, user: u });
+            return;
+          }
+          const uname = new URLSearchParams(window.location.search).get('u');
+          if (uname) {
+            const data = await api.get(`/users/${encodeURIComponent(uname)}`);
+            const u = data.user || data;
+            if (!cancelled && u?._id) {
+              setSelectedChat({ userId: u._id, username: u.username, user: u });
+            }
+          }
+        } catch {}
+      })();
+      return () => { cancelled = true; };
+    }, []);
 
   // Socket: new messages update thread list
   useEffect(() => {
